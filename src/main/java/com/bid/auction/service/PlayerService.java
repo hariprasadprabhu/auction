@@ -1,0 +1,180 @@
+package com.bid.auction.service;
+
+import com.bid.auction.dto.request.PlayerRegisterRequest;
+import com.bid.auction.dto.response.PlayerResponse;
+import com.bid.auction.entity.Player;
+import com.bid.auction.entity.Tournament;
+import com.bid.auction.entity.User;
+import com.bid.auction.enums.PlayerStatus;
+import com.bid.auction.exception.ResourceNotFoundException;
+import com.bid.auction.repository.PlayerRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class PlayerService {
+
+    private final PlayerRepository playerRepository;
+    private final TournamentService tournamentService;
+
+    // ── List (auth) ───────────────────────────────────────────────────────────
+    public List<PlayerResponse> getAllByTournament(Long tournamentId, String status, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        List<Player> players;
+        if (status != null && !status.isBlank()) {
+            PlayerStatus ps = PlayerStatus.valueOf(status.toUpperCase());
+            Tournament t = tournamentService.findById(tournamentId);
+            players = playerRepository.findByTournamentAndStatus(t, ps);
+        } else {
+            players = playerRepository.findByTournamentId(tournamentId);
+        }
+        return players.stream().map(this::toResponse).toList();
+    }
+
+    // ── Get single (auth) ─────────────────────────────────────────────────────
+    public PlayerResponse getById(Long id, User user) {
+        Player player = findPlayer(id);
+        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+        return toResponse(player);
+    }
+
+    // ── Public self-registration ──────────────────────────────────────────────
+    public PlayerResponse register(Long tournamentId, PlayerRegisterRequest req) {
+        Tournament tournament = tournamentService.findById(tournamentId);
+
+        long count = playerRepository.countByTournamentId(tournamentId);
+        String playerNumber = String.format("P%03d", count + 1);
+
+        Player player = Player.builder()
+                .playerNumber(playerNumber)
+                .firstName(req.getFirstName())
+                .lastName(req.getLastName())
+                .dob(req.getDob())
+                .role(req.getRole())
+                .status(PlayerStatus.PENDING)
+                .tournament(tournament)
+                .build();
+
+        setPhoto(player, req.getPhoto());
+        setPaymentProof(player, req.getPaymentProof());
+
+        return toResponse(playerRepository.save(player));
+    }
+
+    // ── Update (auth) ─────────────────────────────────────────────────────────
+    public PlayerResponse update(Long id, PlayerRegisterRequest req, User user) {
+        Player player = findPlayer(id);
+        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+
+        player.setFirstName(req.getFirstName());
+        if (req.getLastName() != null) player.setLastName(req.getLastName());
+        if (req.getDob() != null) player.setDob(req.getDob());
+        player.setRole(req.getRole());
+        if (req.getPhoto() != null && !req.getPhoto().isEmpty()) setPhoto(player, req.getPhoto());
+        if (req.getPaymentProof() != null && !req.getPaymentProof().isEmpty())
+            setPaymentProof(player, req.getPaymentProof());
+
+        return toResponse(playerRepository.save(player));
+    }
+
+    // ── Delete (auth) ─────────────────────────────────────────────────────────
+    public void delete(Long id, User user) {
+        Player player = findPlayer(id);
+        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+        playerRepository.delete(player);
+    }
+
+    // ── Approve / Reject ──────────────────────────────────────────────────────
+    public Map<String, Object> approve(Long id, User user) {
+        Player player = findPlayer(id);
+        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+        player.setStatus(PlayerStatus.APPROVED);
+        playerRepository.save(player);
+        return Map.of("id", player.getId(), "status", player.getStatus().name());
+    }
+
+    public Map<String, Object> reject(Long id, User user) {
+        Player player = findPlayer(id);
+        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+        player.setStatus(PlayerStatus.REJECTED);
+        playerRepository.save(player);
+        return Map.of("id", player.getId(), "status", player.getStatus().name());
+    }
+
+    // ── Photo / PaymentProof bytes ────────────────────────────────────────────
+    public byte[] getPhoto(Long id) {
+        Player player = findPlayer(id);
+        if (player.getPhoto() == null)
+            throw new ResourceNotFoundException("Photo not found for player: " + id);
+        return player.getPhoto();
+    }
+
+    public String getPhotoContentType(Long id) {
+        Player player = findPlayer(id);
+        return player.getPhotoContentType() != null ? player.getPhotoContentType() : "image/jpeg";
+    }
+
+    public byte[] getPaymentProof(Long id) {
+        Player player = findPlayer(id);
+        if (player.getPaymentProof() == null)
+            throw new ResourceNotFoundException("Payment proof not found for player: " + id);
+        return player.getPaymentProof();
+    }
+
+    public String getPaymentProofContentType(Long id) {
+        Player player = findPlayer(id);
+        return player.getPaymentProofContentType() != null
+                ? player.getPaymentProofContentType() : "application/octet-stream";
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private Player findPlayer(Long id) {
+        return playerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + id));
+    }
+
+    private void setPhoto(Player player, MultipartFile file) {
+        if (file != null && !file.isEmpty()) {
+            try {
+                player.setPhoto(file.getBytes());
+                player.setPhotoContentType(file.getContentType());
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Failed to read photo file");
+            }
+        }
+    }
+
+    private void setPaymentProof(Player player, MultipartFile file) {
+        if (file != null && !file.isEmpty()) {
+            try {
+                player.setPaymentProof(file.getBytes());
+                player.setPaymentProofContentType(file.getContentType());
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Failed to read payment proof file");
+            }
+        }
+    }
+
+    public PlayerResponse toResponse(Player p) {
+        return PlayerResponse.builder()
+                .id(p.getId())
+                .playerNumber(p.getPlayerNumber())
+                .firstName(p.getFirstName())
+                .lastName(p.getLastName())
+                .dob(p.getDob())
+                .role(p.getRole())
+                .status(p.getStatus() != null ? p.getStatus().name() : null)
+                .tournamentId(p.getTournament().getId())
+                .photoUrl(p.getPhoto() != null ? "/api/players/" + p.getId() + "/photo" : null)
+                .paymentProofUrl(p.getPaymentProof() != null
+                        ? "/api/players/" + p.getId() + "/payment-proof" : null)
+                .build();
+    }
+}
+

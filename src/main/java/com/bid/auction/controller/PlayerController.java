@@ -37,6 +37,28 @@ public class PlayerController {
         return ResponseEntity.ok(playerService.getAllByTournament(tournamentId, status, currentUser(auth)));
     }
 
+    /**
+     * Get only APPROVED players who are eligible for the auction pool.
+     * These are players ready to be added to AuctionPlayers.
+     */
+    @GetMapping("/api/tournaments/{tournamentId}/players/approved")
+    public ResponseEntity<List<PlayerResponse>> getApprovedPlayers(
+            @PathVariable Long tournamentId,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.getApprovedByTournament(tournamentId, currentUser(auth)));
+    }
+
+    /**
+     * Get player registration statistics for the tournament.
+     * Shows count of PENDING, APPROVED, and REJECTED players.
+     */
+    @GetMapping("/api/tournaments/{tournamentId}/players/stats")
+    public ResponseEntity<Map<String, Object>> getPlayerStats(
+            @PathVariable Long tournamentId,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.getPlayerStatsByTournament(tournamentId, currentUser(auth)));
+    }
+
     // ── Public self-registration ───────────────────────────────────────────────
 
     @PostMapping(value = "/api/players/register/{tournamentId}",

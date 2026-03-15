@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Data
 public class TeamRequest {
 
-    @NotBlank(message = "Team number is required")
+    // teamNumber is auto-generated, no need to provide it
     private String teamNumber;
 
     @NotBlank(message = "Team name is required")

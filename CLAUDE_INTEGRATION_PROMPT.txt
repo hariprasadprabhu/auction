@@ -1,0 +1,917 @@
+================================================================================
+                    PROMPT FOR CLAUDE - ANGULAR API INTEGRATION
+                        Cricket Auction System
+================================================================================
+
+You are an expert Angular developer helping to integrate a Cricket Auction
+System backend API into an Angular application. Use the following API
+documentation to build Angular services, components, and HTTP interceptors.
+
+================================================================================
+                            PROJECT CONTEXT
+================================================================================
+
+PROJECT NAME: Cricket Auction System
+BACKEND TYPE: Spring Boot REST API
+BASE URL: http://localhost:8080
+FRONTEND: Angular (TypeScript)
+AUTHENTICATION: JWT Bearer Token
+DATABASE: PostgreSQL
+
+KEY FEATURES:
+- Tournament Management (create, update, delete tournaments)
+- Team Management (create, update, delete teams with logos)
+- Player Registration & Management (public self-registration + admin approval workflow)
+- Auction Player Pool (promotion of approved players to auction)
+- Live Auction (sell/unsold player tracking)
+- Bid Increment Rules (configurable bidding increments)
+- Owner Dashboard (comprehensive tournament analytics)
+
+================================================================================
+                            COMPLETE API DOCUMENTATION
+================================================================================
+
+BASE URL: http://localhost:8080
+
+AUTHENTICATION:
+- JWT Bearer Token required for most endpoints (except /auth endpoints)
+- Include token in Authorization header: Authorization: Bearer <token>
+- Token obtained from /api/auth/login endpoint
+
+────────────────────────────────────────────────────────────────────────────
+
+1. AUTHENTICATION ENDPOINTS
+
+1.1 Register New Organizer Account
+URL: /api/auth/register
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "name": "string",                           // Required, 2+ characters, letters/spaces/dots/hyphens only
+  "email": "string",                          // Required, valid email format
+  "password": "string",                       // Required, 8-100 chars, min 1 uppercase, 1 digit, 1 special char
+  "phoneCountryCode": "string",               // Required (e.g., "+91", "+1", "+44")
+  "phoneNumber": "string",                    // Required, 6-15 digits
+  "organisation": "string",                   // Optional
+  "sport": "string",                          // Required (e.g., "CRICKET")
+  "numberOfTeams": "integer"                  // Optional
+}
+
+RESPONSE (201):
+{
+  "id": 1,
+  "name": "John Organizer",
+  "email": "john@example.com",
+  "role": "ADMIN"
+}
+
+ERROR (400):
+{
+  "errors": {
+    "email": "Email is already in use",
+    "password": "must match pattern"
+  }
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+1.2 Login and Get JWT Token
+URL: /api/auth/login
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "email": "string",                          // Required, valid email format
+  "password": "string"                        // Required
+}
+
+RESPONSE (200):
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "type": "Bearer",
+  "id": 1,
+  "name": "John Organizer",
+  "email": "john@example.com",
+  "role": "ADMIN"
+}
+
+ERROR (401):
+{
+  "error": "UNAUTHORIZED",
+  "message": "Bad credentials",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+2. TOURNAMENT ENDPOINTS
+
+2.1 Get All Tournaments
+URL: /api/tournaments
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200):
+[
+  {
+    "id": 1,
+    "name": "IPL 2024",
+    "date": "2024-03-20",
+    "sport": "CRICKET",
+    "totalTeams": 10,
+    "totalPlayers": 150,
+    "status": "UPCOMING",
+    "purseAmount": 100000000,
+    "playersPerTeam": 11,
+    "basePrice": 50000,
+    "logoUrl": "/api/tournaments/1/logo"
+  }
+]
+
+────────────────────────────────────────────────────────────────────────────
+
+2.2 Get Tournament by ID
+URL: /api/tournaments/{id}
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200):
+{
+  "id": 1,
+  "name": "IPL 2024",
+  "date": "2024-03-20",
+  "sport": "CRICKET",
+  "totalTeams": 10,
+  "totalPlayers": 150,
+  "status": "UPCOMING",
+  "purseAmount": 100000000,
+  "playersPerTeam": 11,
+  "basePrice": 50000,
+  "logoUrl": "/api/tournaments/1/logo"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+2.3 Create Tournament
+URL: /api/tournaments
+METHOD: POST
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data):
+{
+  "name": "string",                           // Required
+  "date": "YYYY-MM-DD",                       // Required
+  "sport": "string",                          // Required
+  "totalTeams": "integer",                    // Required, minimum 2
+  "totalPlayers": "integer",                  // Required, minimum 1
+  "purseAmount": "long",                      // Required, minimum 1
+  "playersPerTeam": "integer",                // Required, minimum 1
+  "basePrice": "long",                        // Required, minimum 1
+  "status": "string",                         // Optional (UPCOMING, ONGOING, COMPLETED)
+  "logo": "file"                              // Optional, image/jpeg or image/png, max 2MB
+}
+
+RESPONSE (201):
+{
+  "id": 1,
+  "name": "IPL 2024",
+  "date": "2024-03-20",
+  "sport": "CRICKET",
+  "totalTeams": 10,
+  "totalPlayers": 150,
+  "status": "UPCOMING",
+  "purseAmount": 100000000,
+  "playersPerTeam": 11,
+  "basePrice": 50000,
+  "logoUrl": "/api/tournaments/1/logo"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+2.4 Update Tournament
+URL: /api/tournaments/{id}
+METHOD: PUT
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data): Same as Create (all optional)
+
+RESPONSE (200): Tournament object
+
+────────────────────────────────────────────────────────────────────────────
+
+2.5 Delete Tournament
+URL: /api/tournaments/{id}
+METHOD: DELETE
+AUTH: Required
+
+RESPONSE (204): No content
+
+────────────────────────────────────────────────────────────────────────────
+
+2.6 Get Tournament Logo
+URL: /api/tournaments/{id}/logo
+METHOD: GET
+AUTH: Not Required
+
+RESPONSE (200): Binary image data
+
+────────────────────────────────────────────────────────────────────────────
+
+3. TEAM ENDPOINTS
+
+3.1 Get All Teams for Tournament
+URL: /api/tournaments/{tournamentId}/teams
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200):
+[
+  {
+    "id": 1,
+    "teamNumber": "T001",
+    "name": "Mumbai Indians",
+    "ownerName": "Nita Ambani",
+    "mobileNumber": "9876543210",
+    "tournamentId": 1,
+    "logoUrl": "/api/teams/1/logo"
+  }
+]
+
+────────────────────────────────────────────────────────────────────────────
+
+3.2 Get Team by ID
+URL: /api/teams/{id}
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200): Team object
+
+────────────────────────────────────────────────────────────────────────────
+
+3.3 Create Team
+URL: /api/tournaments/{tournamentId}/teams
+METHOD: POST
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data):
+{
+  "teamNumber": "string",                     // Required
+  "name": "string",                           // Required
+  "ownerName": "string",                      // Required
+  "mobileNumber": "string",                   // Required
+  "logo": "file"                              // Required, image/jpeg or image/png, max 2MB
+}
+
+RESPONSE (201): Team object
+
+────────────────────────────────────────────────────────────────────────────
+
+3.4 Update Team
+URL: /api/teams/{id}
+METHOD: PUT
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data): Same as Create (all optional, logo optional)
+
+RESPONSE (200): Team object
+
+────────────────────────────────────────────────────────────────────────────
+
+3.5 Delete Team
+URL: /api/teams/{id}
+METHOD: DELETE
+AUTH: Required
+
+RESPONSE (204): No content
+
+────────────────────────────────────────────────────────────────────────────
+
+3.6 Get Team Logo
+URL: /api/teams/{id}/logo
+METHOD: GET
+AUTH: Not Required
+
+RESPONSE (200): Binary image data
+
+────────────────────────────────────────────────────────────────────────────
+
+4. PLAYER ENDPOINTS
+
+4.1 Get All Players for Tournament
+URL: /api/tournaments/{tournamentId}/players
+METHOD: GET
+AUTH: Required
+QUERY PARAMS: status (optional, filter by PENDING, APPROVED, REJECTED)
+
+RESPONSE (200):
+[
+  {
+    "id": 1,
+    "playerNumber": "P001",
+    "firstName": "Virat",
+    "lastName": "Kohli",
+    "dob": "1988-11-05",
+    "role": "BATSMAN",
+    "status": "APPROVED",
+    "tournamentId": 1,
+    "photoUrl": "/api/players/1/photo",
+    "paymentProofUrl": "/api/players/1/payment-proof"
+  }
+]
+
+────────────────────────────────────────────────────────────────────────────
+
+4.2 Get Approved Players for Tournament
+URL: /api/tournaments/{tournamentId}/players/approved
+METHOD: GET
+AUTH: Required
+
+DESCRIPTION: Returns only APPROVED players eligible for auction pool.
+
+RESPONSE (200): Array of Player objects (APPROVED status only)
+
+────────────────────────────────────────────────────────────────────────────
+
+4.3 Get Player Registration Statistics
+URL: /api/tournaments/{tournamentId}/players/stats
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200):
+{
+  "totalPlayers": 150,
+  "pending": 50,
+  "approved": 95,
+  "rejected": 5
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+4.4 Register Player (Public Self-Registration)
+URL: /api/players/register/{tournamentId}
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data):
+{
+  "firstName": "string",                      // Required
+  "lastName": "string",                       // Optional
+  "dob": "YYYY-MM-DD",                        // Optional
+  "role": "string",                           // Required (BATSMAN, BOWLER, ALL-ROUNDER)
+  "photo": "file",                            // Optional, image file
+  "paymentProof": "file"                      // Optional, any file
+}
+
+RESPONSE (201):
+{
+  "id": 1,
+  "playerNumber": "P001",                     // Auto-generated
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "dob": "1988-11-05",
+  "role": "BATSMAN",
+  "status": "PENDING",                        // Initial status
+  "tournamentId": 1,
+  "photoUrl": "/api/players/1/photo",
+  "paymentProofUrl": "/api/players/1/payment-proof"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+4.5 Get Player by ID
+URL: /api/players/{id}
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200): Player object
+
+────────────────────────────────────────────────────────────────────────────
+
+4.6 Update Player
+URL: /api/players/{id}
+METHOD: PUT
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data):
+{
+  "firstName": "string",                      // Optional
+  "lastName": "string",                       // Optional
+  "dob": "YYYY-MM-DD",                        // Optional
+  "role": "string",                           // Optional
+  "photo": "file",                            // Optional
+  "paymentProof": "file"                      // Optional
+}
+
+RESPONSE (200): Player object
+
+────────────────────────────────────────────────────────────────────────────
+
+4.7 Delete Player
+URL: /api/players/{id}
+METHOD: DELETE
+AUTH: Required
+
+RESPONSE (204): No content
+
+────────────────────────────────────────────────────────────────────────────
+
+4.8 Approve Player
+URL: /api/players/{id}/approve
+METHOD: PATCH
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST: Empty body
+
+RESPONSE (200):
+{
+  "id": 1,
+  "status": "APPROVED"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+4.9 Reject Player
+URL: /api/players/{id}/reject
+METHOD: PATCH
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST: Empty body
+
+RESPONSE (200):
+{
+  "id": 1,
+  "status": "REJECTED"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+4.10 Add Approved Player to Auction Pool
+URL: /api/players/{id}/add-to-auction
+METHOD: POST
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "age": "integer",                           // Required, minimum 1
+  "city": "string",                           // Required
+  "battingStyle": "string",                   // Required
+  "bowlingStyle": "string",                   // Required
+  "basePrice": "long"                         // Required, minimum 1
+}
+
+DESCRIPTION: Promotes an APPROVED player to auction pool with cricket stats.
+
+RESPONSE (201):
+{
+  "id": 1,
+  "playerId": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "AVAILABLE",
+  "soldToTeamId": null,
+  "soldToTeamName": null,
+  "soldPrice": null,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+4.11 Get Player Photo
+URL: /api/players/{id}/photo
+METHOD: GET
+AUTH: Not Required
+
+RESPONSE (200): Binary image data
+
+────────────────────────────────────────────────────────────────────────────
+
+4.12 Get Player Payment Proof
+URL: /api/players/{id}/payment-proof
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200): Binary file data
+
+────────────────────────────────────────────────────────────────────────────
+
+5. AUCTION PLAYER ENDPOINTS
+
+5.1 Get All Auction Players for Tournament
+URL: /api/tournaments/{tournamentId}/auction-players
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200): Array of AuctionPlayer objects
+
+────────────────────────────────────────────────────────────────────────────
+
+5.2 Create Auction Player (Direct Admin Entry)
+URL: /api/tournaments/{tournamentId}/auction-players
+METHOD: POST
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data):
+{
+  "playerNumber": "string",                   // Required
+  "firstName": "string",                      // Required
+  "lastName": "string",                       // Optional
+  "age": "integer",                           // Required, minimum 1
+  "city": "string",                           // Required
+  "battingStyle": "string",                   // Required
+  "bowlingStyle": "string",                   // Required
+  "role": "string",                           // Required
+  "basePrice": "long",                        // Required, minimum 1
+  "photo": "file"                             // Optional
+}
+
+RESPONSE (201): AuctionPlayer object
+
+────────────────────────────────────────────────────────────────────────────
+
+5.3 Get Auction Player by ID
+URL: /api/auction-players/{id}
+METHOD: GET
+AUTH: Required
+
+RESPONSE (200): AuctionPlayer object
+
+────────────────────────────────────────────────────────────────────────────
+
+5.4 Update Auction Player
+URL: /api/auction-players/{id}
+METHOD: PUT
+AUTH: Required
+CONTENT-TYPE: multipart/form-data
+
+REQUEST (Form Data): Same as Create (all optional)
+
+RESPONSE (200): AuctionPlayer object
+
+────────────────────────────────────────────────────────────────────────────
+
+5.5 Delete Auction Player
+URL: /api/auction-players/{id}
+METHOD: DELETE
+AUTH: Required
+
+RESPONSE (204): No content
+
+────────────────────────────────────────────────────────────────────────────
+
+5.6 Sell Auction Player
+URL: /api/auction-players/{id}/sell
+METHOD: PATCH
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "teamId": "long",                           // Required
+  "soldPrice": "long"                         // Required, minimum 1
+}
+
+DESCRIPTION: Mark an auction player as SOLD to a team at a specific price.
+
+RESPONSE (200):
+{
+  "id": 1,
+  "auctionStatus": "SOLD",
+  "soldToTeamId": 1,
+  "soldToTeamName": "Mumbai Indians",
+  "soldPrice": 250000,
+  ... (other fields)
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+5.7 Mark Auction Player as Unsold
+URL: /api/auction-players/{id}/unsold
+METHOD: PATCH
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST: Empty body
+
+RESPONSE (200):
+{
+  "id": 1,
+  "status": "UNSOLD"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+5.8 Requeue All Unsold Players
+URL: /api/tournaments/{tournamentId}/auction-players/requeue-unsold
+METHOD: PATCH
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST: Empty body
+
+DESCRIPTION: Mark all UNSOLD players as AVAILABLE for re-auction.
+
+RESPONSE (200):
+{
+  "requeued": 5,
+  "message": "5 unsold players requeued to AVAILABLE"
+}
+
+────────────────────────────────────────────────────────────────────────────
+
+5.9 Get Auction Player Photo
+URL: /api/auction-players/{id}/photo
+METHOD: GET
+AUTH: Not Required
+
+RESPONSE (200): Binary image data
+
+────────────────────────────────────────────────────────────────────────────
+
+6. INCREMENT RULE ENDPOINTS
+
+6.1 Get All Increment Rules for Tournament
+URL: /api/tournaments/{tournamentId}/increment-rules
+METHOD: GET
+AUTH: Required
+
+DESCRIPTION: Increment rules define bid increments based on price ranges.
+Example: 0-100k increment by 1k, 100k-500k increment by 5k, 500k+ increment by 10k
+
+RESPONSE (200):
+[
+  {
+    "id": 1,
+    "fromAmount": 0,
+    "toAmount": 100000,
+    "incrementBy": 1000,
+    "tournamentId": 1
+  },
+  {
+    "id": 2,
+    "fromAmount": 100000,
+    "toAmount": 500000,
+    "incrementBy": 5000,
+    "tournamentId": 1
+  },
+  {
+    "id": 3,
+    "fromAmount": 500000,
+    "toAmount": 9223372036854775807,          // Long.MAX_VALUE for "and above"
+    "incrementBy": 10000,
+    "tournamentId": 1
+  }
+]
+
+────────────────────────────────────────────────────────────────────────────
+
+6.2 Create Increment Rule
+URL: /api/tournaments/{tournamentId}/increment-rules
+METHOD: POST
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "fromAmount": "long",                       // Required, minimum 0
+  "toAmount": "long",                         // Optional, 0 or null means "and above" (stored as Long.MAX_VALUE)
+  "incrementBy": "long"                       // Required, minimum 1
+}
+
+RESPONSE (201): IncrementRule object
+
+────────────────────────────────────────────────────────────────────────────
+
+6.3 Update Increment Rule
+URL: /api/increment-rules/{id}
+METHOD: PUT
+AUTH: Required
+CONTENT-TYPE: application/json
+
+REQUEST:
+{
+  "fromAmount": "long",                       // Optional
+  "toAmount": "long",                         // Optional
+  "incrementBy": "long"                       // Optional
+}
+
+RESPONSE (200): IncrementRule object
+
+────────────────────────────────────────────────────────────────────────────
+
+6.4 Delete Increment Rule
+URL: /api/increment-rules/{id}
+METHOD: DELETE
+AUTH: Required
+
+RESPONSE (204): No content
+
+────────────────────────────────────────────────────────────────────────────
+
+7. OWNER VIEW ENDPOINT
+
+7.1 Get Owner Dashboard View
+URL: /api/tournaments/{tournamentId}/owner-view
+METHOD: GET
+AUTH: Required
+
+DESCRIPTION: Provides comprehensive dashboard with tournament summary, player
+stats, and team stats (purse tracking, players count, etc.).
+
+RESPONSE (200):
+{
+  "tournament": {
+    "id": 1,
+    "name": "IPL 2024",
+    "purseAmount": 100000000,
+    "playersPerTeam": 11,
+    "basePrice": 50000
+  },
+  "playerStats": {
+    "total": 150,
+    "sold": 120,
+    "unsold": 20,
+    "available": 10
+  },
+  "teamStats": [
+    {
+      "team": {
+        "id": 1,
+        "teamNumber": "T001",
+        "name": "Mumbai Indians",
+        "ownerName": "Nita Ambani",
+        "mobileNumber": "9876543210"
+      },
+      "purseAllocated": 100000000,
+      "purseSpent": 75000000,
+      "purseRemaining": 25000000,
+      "playersCount": 11,
+      "playerDetails": [
+        {
+          "auctionPlayerId": 1,
+          "playerNumber": "P001",
+          "firstName": "Virat",
+          "lastName": "Kohli",
+          "role": "BATSMAN",
+          "soldPrice": 250000
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+
+================================================================================
+                        COMMON ERROR RESPONSES
+================================================================================
+
+400 BAD REQUEST:
+{
+  "fieldName": "error message",
+  "anotherField": "another error message"
+}
+
+401 UNAUTHORIZED (Invalid or Missing Token):
+{
+  "error": "UNAUTHORIZED",
+  "message": "Unauthorized",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+403 FORBIDDEN (User not authorized):
+{
+  "error": "FORBIDDEN",
+  "message": "User does not have permission to access this resource",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+404 NOT FOUND:
+{
+  "error": "NOT_FOUND",
+  "message": "Resource not found",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+500 INTERNAL SERVER ERROR:
+{
+  "error": "INTERNAL_SERVER_ERROR",
+  "message": "An error occurred",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+================================================================================
+                        ANGULAR IMPLEMENTATION GUIDE
+================================================================================
+
+TASK: Based on the above API documentation, please help create Angular code for:
+
+1. ANGULAR SERVICES LAYER
+   - Create an AuthService for login/register/token management
+   - Create a TournamentService for all tournament operations
+   - Create a TeamService for all team operations
+   - Create a PlayerService for all player operations
+   - Create a AuctionPlayerService for auction-related operations
+   - Create an IncrementRuleService for bid increment rules
+   - Create an OwnerViewService for dashboard data
+
+   Each service should:
+   - Have typed methods for each API endpoint
+   - Return Observable<T> for async operations
+   - Handle API errors gracefully
+   - Use strong typing with TypeScript interfaces
+
+2. HTTP INTERCEPTOR
+   - Create an HttpInterceptor to automatically add JWT token to requests
+   - Handle 401 responses by clearing token and redirecting to login
+   - Add Content-Type headers appropriately
+
+3. TYPESCRIPT INTERFACES/MODELS
+   - Create interfaces for all request/response types
+   - Create interfaces for all domain models (Tournament, Team, Player, etc.)
+   - Use strong typing throughout
+
+4. ENVIRONMENT CONFIGURATION
+   - Create environment.ts and environment.prod.ts
+   - Store API_BASE_URL in environment
+   - Store other config constants
+
+5. GUARDS
+   - Create AuthGuard to protect routes requiring authentication
+   - Implement canActivate() method
+
+6. STATE MANAGEMENT (optional)
+   - Suggest NgRx or similar state management patterns if needed
+
+REQUIREMENTS:
+- Use Angular best practices
+- Implement error handling consistently
+- Include proper TypeScript typing
+- Add comments and documentation
+- Handle multipart/form-data correctly
+- Support JWT token refresh if needed
+- Include proper logging for debugging
+
+SPECIFIC IMPLEMENTATION DETAILS:
+
+For Multipart Form Data (Tournaments, Teams, Players, Auction Players):
+- Do NOT manually set Content-Type header
+- Let the browser set it automatically with boundary
+- Use FormData API to build the request
+
+For Image Endpoints:
+- Tournament logo: /api/tournaments/{id}/logo
+- Team logo: /api/teams/{id}/logo
+- Player photo: /api/players/{id}/photo
+- Auction player photo: /api/auction-players/{id}/photo
+- Use these URLs directly in img src attribute or as blob for download
+
+For Authentication Flow:
+1. User calls login() -> receive token
+2. Store token in localStorage/sessionStorage
+3. Interceptor adds token to all subsequent requests
+4. If 401 response, clear token and redirect to login
+
+For Player Workflow:
+1. Public registration creates PENDING player
+2. Admin approves/rejects PENDING players
+3. Approved players can be promoted to AuctionPlayer
+4. AuctionPlayers go through auction (AVAILABLE -> SOLD/UNSOLD)
+
+For Auction Players Status:
+- AVAILABLE: Ready for bidding
+- SOLD: Sold to a team
+- UNSOLD: Not sold in auction
+- Can requeue UNSOLD back to AVAILABLE
+
+PROVIDE:
+1. Complete service files with all methods
+2. HTTP interceptor for JWT handling
+3. All TypeScript interfaces/models
+4. Auth guard
+5. Environment configuration files
+6. Usage examples for key operations
+

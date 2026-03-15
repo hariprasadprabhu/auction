@@ -107,6 +107,32 @@ public class PlayerService {
         return Map.of("id", player.getId(), "status", player.getStatus().name());
     }
 
+    // ── Get Approved Players (only these can enter auction) ──────────────────
+    public List<PlayerResponse> getApprovedByTournament(Long tournamentId, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        List<Player> approvedPlayers = playerRepository.findByTournamentAndStatus(tournament, PlayerStatus.APPROVED);
+        return approvedPlayers.stream().map(this::toResponse).toList();
+    }
+
+    // ── Get Players by Status (for workflow monitoring) ──────────────────────
+    public Map<String, Object> getPlayerStatsByTournament(Long tournamentId, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        
+        List<Player> allPlayers = playerRepository.findByTournament(tournament);
+        long pending = allPlayers.stream().filter(p -> p.getStatus() == PlayerStatus.PENDING).count();
+        long approved = allPlayers.stream().filter(p -> p.getStatus() == PlayerStatus.APPROVED).count();
+        long rejected = allPlayers.stream().filter(p -> p.getStatus() == PlayerStatus.REJECTED).count();
+        
+        return Map.of(
+            "totalPlayers", allPlayers.size(),
+            "pending", pending,
+            "approved", approved,
+            "rejected", rejected
+        );
+    }
+
     // ── Photo / PaymentProof bytes ────────────────────────────────────────────
     public byte[] getPhoto(Long id) {
         Player player = findPlayer(id);

@@ -39,8 +39,11 @@ public class TeamService {
     public TeamResponse create(Long tournamentId, TeamRequest req, User user) {
         Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
 
+        long count = teamRepository.countByTournamentId(tournamentId);
+        String teamNumber = String.format("T%03d", count + 1);
+
         Team team = Team.builder()
-                .teamNumber(req.getTeamNumber())
+                .teamNumber(teamNumber)
                 .name(req.getName())
                 .ownerName(req.getOwnerName())
                 .mobileNumber(req.getMobileNumber())
@@ -56,7 +59,6 @@ public class TeamService {
         Team team = findTeam(id);
         tournamentService.findAndVerifyOwner(team.getTournament().getId(), user);
 
-        team.setTeamNumber(req.getTeamNumber());
         team.setName(req.getName());
         team.setOwnerName(req.getOwnerName());
         team.setMobileNumber(req.getMobileNumber());

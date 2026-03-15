@@ -1,0 +1,1404 @@
+================================================================================
+                    ANGULAR API INTEGRATION GUIDE
+                        Cricket Auction System
+                    Backend API Documentation (v1.0)
+================================================================================
+
+BASE URL: http://localhost:8080
+
+AUTHENTICATION:
+- JWT Bearer Token required for most endpoints (except /auth endpoints)
+- Include token in Authorization header: Authorization: Bearer <token>
+- Token obtained from /api/auth/login endpoint
+- Token format: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+================================================================================
+                        1. AUTHENTICATION ENDPOINTS
+================================================================================
+
+ENDPOINT 1.1: Register New Organizer Account
+─────────────────────────────────────────────
+URL: /api/auth/register
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: application/json
+
+REQUEST BODY:
+{
+  "name": "string",                           // Required, 2+ characters, letters/spaces/dots/hyphens only
+  "email": "string",                          // Required, valid email format
+  "password": "string",                       // Required, 8-100 chars, min 1 uppercase, 1 digit, 1 special char
+  "phoneCountryCode": "string",               // Required (e.g., "+91", "+1", "+44")
+  "phoneNumber": "string",                    // Required, 6-15 digits
+  "organisation": "string",                   // Optional
+  "sport": "string",                          // Required (e.g., "CRICKET")
+  "numberOfTeams": "integer"                  // Optional
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "name": "John Organizer",
+  "email": "john@example.com",
+  "role": "ADMIN"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation errors or email already in use
+  {
+    "errors": {
+      "email": "Email is already in use",
+      "password": "must match pattern"
+    }
+  }
+
+
+ENDPOINT 1.2: Login and Get JWT Token
+──────────────────────────────────────
+URL: /api/auth/login
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: application/json
+
+REQUEST BODY:
+{
+  "email": "string",                          // Required, valid email format
+  "password": "string"                        // Required
+}
+
+RESPONSE (200 OK):
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",  // JWT token for Authorization header
+  "type": "Bearer",
+  "id": 1,
+  "name": "John Organizer",
+  "email": "john@example.com",
+  "role": "ADMIN"
+}
+
+ERROR RESPONSES:
+- 401 Unauthorized: Bad credentials
+  {
+    "error": "UNAUTHORIZED",
+    "message": "Bad credentials",
+    "timestamp": "2024-03-15T10:30:00Z"
+  }
+
+
+================================================================================
+                      2. TOURNAMENT ENDPOINTS
+================================================================================
+
+ENDPOINT 2.1: Get All Tournaments (Current User's)
+───────────────────────────────────────────────────
+URL: /api/tournaments
+METHOD: GET
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS: None
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "name": "IPL 2024",
+    "date": "2024-03-20",
+    "sport": "CRICKET",
+    "totalTeams": 10,
+    "totalPlayers": 150,
+    "status": "UPCOMING",
+    "purseAmount": 100000000,
+    "playersPerTeam": 11,
+    "basePrice": 50000,
+    "logoUrl": "/api/tournaments/1/logo"
+  },
+  ...
+]
+
+ERROR RESPONSES:
+- 401 Unauthorized: Invalid or missing token
+- 403 Forbidden: User not authenticated
+
+
+ENDPOINT 2.2: Get Tournament by ID
+──────────────────────────────────
+URL: /api/tournaments/{id}
+METHOD: GET
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Tournament ID (required)
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "name": "IPL 2024",
+  "date": "2024-03-20",
+  "sport": "CRICKET",
+  "totalTeams": 10,
+  "totalPlayers": 150,
+  "status": "UPCOMING",
+  "purseAmount": 100000000,
+  "playersPerTeam": 11,
+  "basePrice": 50000,
+  "logoUrl": "/api/tournaments/1/logo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 2.3: Create Tournament
+───────────────────────────────
+URL: /api/tournaments
+METHOD: POST
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST BODY (Form Data):
+{
+  "name": "string",                           // Required, non-blank
+  "date": "YYYY-MM-DD",                       // Required, date format
+  "sport": "string",                          // Required (e.g., "CRICKET")
+  "totalTeams": "integer",                    // Required, minimum 2
+  "totalPlayers": "integer",                  // Required, minimum 1
+  "purseAmount": "long",                      // Required, minimum 1
+  "playersPerTeam": "integer",                // Required, minimum 1
+  "basePrice": "long",                        // Required, minimum 1
+  "status": "string",                         // Optional (UPCOMING, ONGOING, COMPLETED)
+  "logo": "file"                              // Optional, image/jpeg or image/png, max 2MB
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "name": "IPL 2024",
+  "date": "2024-03-20",
+  "sport": "CRICKET",
+  "totalTeams": 10,
+  "totalPlayers": 150,
+  "status": "UPCOMING",
+  "purseAmount": 100000000,
+  "playersPerTeam": 11,
+  "basePrice": 50000,
+  "logoUrl": "/api/tournaments/1/logo"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error
+  {
+    "totalTeams": "must be at least 2",
+    "purseAmount": "must be at least 1"
+  }
+- 401 Unauthorized: Invalid token
+
+
+ENDPOINT 2.4: Update Tournament
+───────────────────────────────
+URL: /api/tournaments/{id}
+METHOD: PUT
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- id (path): Tournament ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "name": "string",                           // Optional (if not provided, existing value kept)
+  "date": "YYYY-MM-DD",                       // Optional
+  "sport": "string",                          // Optional
+  "totalTeams": "integer",                    // Optional
+  "totalPlayers": "integer",                  // Optional
+  "purseAmount": "long",                      // Optional
+  "playersPerTeam": "integer",                // Optional
+  "basePrice": "long",                        // Optional
+  "status": "string",                         // Optional
+  "logo": "file"                              // Optional, if omitted existing logo is kept
+}
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "name": "IPL 2024 (Updated)",
+  "date": "2024-03-25",
+  "sport": "CRICKET",
+  "totalTeams": 12,
+  "totalPlayers": 180,
+  "status": "ONGOING",
+  "purseAmount": 120000000,
+  "playersPerTeam": 11,
+  "basePrice": 50000,
+  "logoUrl": "/api/tournaments/1/logo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+- 400 Bad Request: Validation error
+
+
+ENDPOINT 2.5: Delete Tournament
+───────────────────────────────
+URL: /api/tournaments/{id}
+METHOD: DELETE
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Tournament ID (required)
+
+RESPONSE (204 NO CONTENT): No body
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 2.6: Get Tournament Logo
+──────────────────────────────────
+URL: /api/tournaments/{id}/logo
+METHOD: GET
+AUTH: Not Required (Public)
+CONTENT-TYPE: image/jpeg or image/png
+
+REQUEST PARAMS:
+- id (path): Tournament ID (required)
+
+RESPONSE (200 OK):
+Binary image data (jpeg/png)
+
+ERROR RESPONSES:
+- 404 Not Found: Logo not found for tournament
+
+
+================================================================================
+                      3. TEAM ENDPOINTS
+================================================================================
+
+ENDPOINT 3.1: Get All Teams for Tournament
+──────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/teams
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "teamNumber": "T001",
+    "name": "Mumbai Indians",
+    "ownerName": "Nita Ambani",
+    "mobileNumber": "9876543210",
+    "tournamentId": 1,
+    "logoUrl": "/api/teams/1/logo"
+  },
+  ...
+]
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 3.2: Get Team by ID
+─────────────────────────────
+URL: /api/teams/{id}
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Team ID (required)
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "teamNumber": "T001",
+  "name": "Mumbai Indians",
+  "ownerName": "Nita Ambani",
+  "mobileNumber": "9876543210",
+  "tournamentId": 1,
+  "logoUrl": "/api/teams/1/logo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Team not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 3.3: Create Team
+─────────────────────────
+URL: /api/tournaments/{tournamentId}/teams
+METHOD: POST
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "teamNumber": "string",                     // Required, non-blank
+  "name": "string",                           // Required, non-blank
+  "ownerName": "string",                      // Required, non-blank
+  "mobileNumber": "string",                   // Required, non-blank
+  "logo": "file"                              // Required, image/jpeg or image/png, max 2MB
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "teamNumber": "T001",
+  "name": "Mumbai Indians",
+  "ownerName": "Nita Ambani",
+  "mobileNumber": "9876543210",
+  "tournamentId": 1,
+  "logoUrl": "/api/teams/1/logo"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error (logo required, etc.)
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 3.4: Update Team
+──────────────────────────
+URL: /api/teams/{id}
+METHOD: PUT
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- id (path): Team ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "teamNumber": "string",                     // Optional
+  "name": "string",                           // Optional
+  "ownerName": "string",                      // Optional
+  "mobileNumber": "string",                   // Optional
+  "logo": "file"                              // Optional, if omitted existing logo is kept
+}
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "teamNumber": "T001",
+  "name": "Mumbai Indians (Updated)",
+  "ownerName": "Nita Ambani",
+  "mobileNumber": "9876543210",
+  "tournamentId": 1,
+  "logoUrl": "/api/teams/1/logo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Team not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 3.5: Delete Team
+──────────────────────────
+URL: /api/teams/{id}
+METHOD: DELETE
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Team ID (required)
+
+RESPONSE (204 NO CONTENT): No body
+
+ERROR RESPONSES:
+- 404 Not Found: Team not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 3.6: Get Team Logo
+────────────────────────────
+URL: /api/teams/{id}/logo
+METHOD: GET
+AUTH: Not Required (Public)
+CONTENT-TYPE: image/jpeg or image/png
+
+REQUEST PARAMS:
+- id (path): Team ID (required)
+
+RESPONSE (200 OK):
+Binary image data (jpeg/png)
+
+ERROR RESPONSES:
+- 404 Not Found: Logo not found for team
+
+
+================================================================================
+                      4. PLAYER ENDPOINTS
+================================================================================
+
+ENDPOINT 4.1: Get All Players for Tournament
+─────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/players
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+- status (query): Optional filter by player status (PENDING, APPROVED, REJECTED)
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "playerNumber": "P001",
+    "firstName": "Virat",
+    "lastName": "Kohli",
+    "dob": "1988-11-05",
+    "role": "BATSMAN",
+    "status": "APPROVED",
+    "tournamentId": 1,
+    "photoUrl": "/api/players/1/photo",
+    "paymentProofUrl": "/api/players/1/payment-proof"
+  },
+  ...
+]
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.2: Get Approved Players for Tournament
+──────────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/players/approved
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+DESCRIPTION:
+Returns only APPROVED players who are eligible for the auction pool.
+These are players ready to be added to AuctionPlayers.
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "playerNumber": "P001",
+    "firstName": "Virat",
+    "lastName": "Kohli",
+    "dob": "1988-11-05",
+    "role": "BATSMAN",
+    "status": "APPROVED",
+    "tournamentId": 1,
+    "photoUrl": "/api/players/1/photo",
+    "paymentProofUrl": "/api/players/1/payment-proof"
+  },
+  ...
+]
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.3: Get Player Registration Statistics
+──────────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/players/stats
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+DESCRIPTION:
+Shows count of PENDING, APPROVED, and REJECTED players for workflow monitoring.
+
+RESPONSE (200 OK):
+{
+  "totalPlayers": 150,
+  "pending": 50,
+  "approved": 95,
+  "rejected": 5
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.4: Register Player (Public Self-Registration)
+─────────────────────────────────────────────────────────
+URL: /api/players/register/{tournamentId}
+METHOD: POST
+AUTH: Not Required (Public)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "firstName": "string",                      // Required, non-blank
+  "lastName": "string",                       // Optional
+  "dob": "YYYY-MM-DD",                        // Optional, date format
+  "role": "string",                           // Required, non-blank (e.g., "BATSMAN", "BOWLER", "ALL-ROUNDER")
+  "photo": "file",                            // Optional, image file (jpeg/png)
+  "paymentProof": "file"                      // Optional, any file
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "playerNumber": "P001",                     // Auto-generated (P001, P002, etc.)
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "dob": "1988-11-05",
+  "role": "BATSMAN",
+  "status": "PENDING",                        // Initial status is PENDING
+  "tournamentId": 1,
+  "photoUrl": "/api/players/1/photo",
+  "paymentProofUrl": "/api/players/1/payment-proof"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error (missing required fields)
+- 404 Not Found: Tournament not found
+
+
+ENDPOINT 4.5: Get Player by ID
+───────────────────────────────
+URL: /api/players/{id}
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "dob": "1988-11-05",
+  "role": "BATSMAN",
+  "status": "APPROVED",
+  "tournamentId": 1,
+  "photoUrl": "/api/players/1/photo",
+  "paymentProofUrl": "/api/players/1/payment-proof"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.6: Update Player
+────────────────────────────
+URL: /api/players/{id}
+METHOD: PUT
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "firstName": "string",                      // Optional
+  "lastName": "string",                       // Optional
+  "dob": "YYYY-MM-DD",                        // Optional
+  "role": "string",                           // Optional
+  "photo": "file",                            // Optional, if provided updates the photo
+  "paymentProof": "file"                      // Optional, if provided updates the payment proof
+}
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "dob": "1988-11-05",
+  "role": "BATSMAN",
+  "status": "APPROVED",
+  "tournamentId": 1,
+  "photoUrl": "/api/players/1/photo",
+  "paymentProofUrl": "/api/players/1/payment-proof"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.7: Delete Player
+────────────────────────────
+URL: /api/players/{id}
+METHOD: DELETE
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+RESPONSE (204 NO CONTENT): No body
+
+ERROR RESPONSES:
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.8: Approve Player
+────────────────────────────
+URL: /api/players/{id}/approve
+METHOD: PATCH
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+REQUEST BODY: Empty
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "status": "APPROVED"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.9: Reject Player
+────────────────────────────
+URL: /api/players/{id}/reject
+METHOD: PATCH
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+REQUEST BODY: Empty
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "status": "REJECTED"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.10: Add Approved Player to Auction Pool
+───────────────────────────────────────────────────
+URL: /api/players/{id}/add-to-auction
+METHOD: POST
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Player ID (must be APPROVED status) (required)
+
+REQUEST BODY:
+{
+  "age": "integer",                           // Required, minimum 1
+  "city": "string",                           // Required, non-blank
+  "battingStyle": "string",                   // Required, non-blank
+  "bowlingStyle": "string",                   // Required, non-blank
+  "basePrice": "long"                         // Required, minimum 1
+}
+
+DESCRIPTION:
+Promotes an APPROVED registered player into the live auction pool.
+Copies name, playerNumber, role, and photo from the Player record.
+Admin provides the extra cricket stats (age, city, battingStyle, bowlingStyle, basePrice).
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "playerId": 1,                              // ID of the registered Player (null if admin-created directly)
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "AVAILABLE",
+  "soldToTeamId": null,
+  "soldToTeamName": null,
+  "soldPrice": null,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error or player not APPROVED
+- 404 Not Found: Player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 4.11: Get Player Photo
+────────────────────────────────
+URL: /api/players/{id}/photo
+METHOD: GET
+AUTH: Not Required (Public)
+CONTENT-TYPE: image/jpeg or image/png
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+RESPONSE (200 OK):
+Binary image data (jpeg/png)
+
+ERROR RESPONSES:
+- 404 Not Found: Photo not found for player
+
+
+ENDPOINT 4.12: Get Player Payment Proof
+────────────────────────────────────────
+URL: /api/players/{id}/payment-proof
+METHOD: GET
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/octet-stream
+
+REQUEST PARAMS:
+- id (path): Player ID (required)
+
+RESPONSE (200 OK):
+Binary file data
+
+ERROR RESPONSES:
+- 404 Not Found: Payment proof not found for player
+- 403 Forbidden: Not the tournament owner
+
+
+================================================================================
+                    5. AUCTION PLAYER ENDPOINTS
+================================================================================
+
+ENDPOINT 5.1: Get All Auction Players for Tournament
+─────────────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/auction-players
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "playerId": 1,
+    "playerNumber": "P001",
+    "firstName": "Virat",
+    "lastName": "Kohli",
+    "age": 35,
+    "city": "Delhi",
+    "battingStyle": "RIGHT_HANDED",
+    "bowlingStyle": "OFF_BREAK",
+    "role": "BATSMAN",
+    "basePrice": 100000,
+    "auctionStatus": "AVAILABLE",
+    "soldToTeamId": null,
+    "soldToTeamName": null,
+    "soldPrice": null,
+    "tournamentId": 1,
+    "sortOrder": 1,
+    "photoUrl": "/api/auction-players/1/photo"
+  },
+  ...
+]
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.2: Create Auction Player (Direct Admin Entry)
+─────────────────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/auction-players
+METHOD: POST
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "playerNumber": "string",                   // Required, non-blank
+  "firstName": "string",                      // Required, non-blank
+  "lastName": "string",                       // Optional
+  "age": "integer",                           // Required, minimum 1
+  "city": "string",                           // Required, non-blank
+  "battingStyle": "string",                   // Required, non-blank
+  "bowlingStyle": "string",                   // Required, non-blank
+  "role": "string",                           // Required, non-blank
+  "basePrice": "long",                        // Required, minimum 1
+  "photo": "file"                             // Optional, image file
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "playerId": null,                           // Null for direct admin-created players
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "AVAILABLE",
+  "soldToTeamId": null,
+  "soldToTeamName": null,
+  "soldPrice": null,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.3: Get Auction Player by ID
+───────────────────────────────────────
+URL: /api/auction-players/{id}
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "playerId": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "AVAILABLE",
+  "soldToTeamId": null,
+  "soldToTeamName": null,
+  "soldPrice": null,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Auction player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.4: Update Auction Player
+────────────────────────────────────
+URL: /api/auction-players/{id}
+METHOD: PUT
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: multipart/form-data
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+REQUEST BODY (Form Data):
+{
+  "playerNumber": "string",                   // Optional
+  "firstName": "string",                      // Optional
+  "lastName": "string",                       // Optional
+  "age": "integer",                           // Optional
+  "city": "string",                           // Optional
+  "battingStyle": "string",                   // Optional
+  "bowlingStyle": "string",                   // Optional
+  "role": "string",                           // Optional
+  "basePrice": "long",                        // Optional
+  "photo": "file"                             // Optional
+}
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "playerId": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "AVAILABLE",
+  "soldToTeamId": null,
+  "soldToTeamName": null,
+  "soldPrice": null,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Auction player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.5: Delete Auction Player
+────────────────────────────────────
+URL: /api/auction-players/{id}
+METHOD: DELETE
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+RESPONSE (204 NO CONTENT): No body
+
+ERROR RESPONSES:
+- 404 Not Found: Auction player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.6: Sell Auction Player
+──────────────────────────────────
+URL: /api/auction-players/{id}/sell
+METHOD: PATCH
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+REQUEST BODY:
+{
+  "teamId": "long",                           // Required, team to which player is sold
+  "soldPrice": "long"                         // Required, price at which player is sold (minimum 1)
+}
+
+DESCRIPTION:
+Mark an auction player as SOLD to a specific team at a specific price.
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "playerId": 1,
+  "playerNumber": "P001",
+  "firstName": "Virat",
+  "lastName": "Kohli",
+  "age": 35,
+  "city": "Delhi",
+  "battingStyle": "RIGHT_HANDED",
+  "bowlingStyle": "OFF_BREAK",
+  "role": "BATSMAN",
+  "basePrice": 100000,
+  "auctionStatus": "SOLD",
+  "soldToTeamId": 1,
+  "soldToTeamName": "Mumbai Indians",
+  "soldPrice": 250000,
+  "tournamentId": 1,
+  "sortOrder": 1,
+  "photoUrl": "/api/auction-players/1/photo"
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error
+- 404 Not Found: Auction player or team not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.7: Mark Auction Player as Unsold
+─────────────────────────────────────────────
+URL: /api/auction-players/{id}/unsold
+METHOD: PATCH
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+REQUEST BODY: Empty
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "status": "UNSOLD"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Auction player not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.8: Requeue All Unsold Players
+──────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/auction-players/requeue-unsold
+METHOD: PATCH
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+REQUEST BODY: Empty
+
+DESCRIPTION:
+Mark all UNSOLD players in the auction as AVAILABLE again for re-auction.
+
+RESPONSE (200 OK):
+{
+  "requeued": 5,
+  "message": "5 unsold players requeued to AVAILABLE"
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 5.9: Get Auction Player Photo
+────────────────────────────────────────
+URL: /api/auction-players/{id}/photo
+METHOD: GET
+AUTH: Not Required (Public)
+CONTENT-TYPE: image/jpeg or image/png
+
+REQUEST PARAMS:
+- id (path): Auction Player ID (required)
+
+RESPONSE (200 OK):
+Binary image data (jpeg/png)
+
+ERROR RESPONSES:
+- 404 Not Found: Photo not found for auction player
+
+
+================================================================================
+                    6. INCREMENT RULE ENDPOINTS
+================================================================================
+
+ENDPOINT 6.1: Get All Increment Rules for Tournament
+─────────────────────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/increment-rules
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+DESCRIPTION:
+Increment rules define how much to increment the bid based on the current price range.
+Example:
+- From 0 to 100000: increment by 1000
+- From 100000 to 500000: increment by 5000
+- From 500000 and above: increment by 10000
+
+RESPONSE (200 OK):
+[
+  {
+    "id": 1,
+    "fromAmount": 0,
+    "toAmount": 100000,
+    "incrementBy": 1000,
+    "tournamentId": 1
+  },
+  {
+    "id": 2,
+    "fromAmount": 100000,
+    "toAmount": 500000,
+    "incrementBy": 5000,
+    "tournamentId": 1
+  },
+  {
+    "id": 3,
+    "fromAmount": 500000,
+    "toAmount": 9223372036854775807,        // Long.MAX_VALUE for "and above"
+    "incrementBy": 10000,
+    "tournamentId": 1
+  }
+]
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 6.2: Create Increment Rule
+────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/increment-rules
+METHOD: POST
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+REQUEST BODY:
+{
+  "fromAmount": "long",                       // Required, minimum 0
+  "toAmount": "long",                         // Optional, 0 or null means "and above" (stored as Long.MAX_VALUE)
+  "incrementBy": "long"                       // Required, minimum 1
+}
+
+RESPONSE (201 CREATED):
+{
+  "id": 1,
+  "fromAmount": 0,
+  "toAmount": 100000,
+  "incrementBy": 1000,
+  "tournamentId": 1
+}
+
+ERROR RESPONSES:
+- 400 Bad Request: Validation error
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 6.3: Update Increment Rule
+────────────────────────────────────
+URL: /api/increment-rules/{id}
+METHOD: PUT
+AUTH: Required (Bearer Token)
+CONTENT-TYPE: application/json
+
+REQUEST PARAMS:
+- id (path): Increment Rule ID (required)
+
+REQUEST BODY:
+{
+  "fromAmount": "long",                       // Optional
+  "toAmount": "long",                         // Optional, 0 or null means "and above"
+  "incrementBy": "long"                       // Optional
+}
+
+RESPONSE (200 OK):
+{
+  "id": 1,
+  "fromAmount": 0,
+  "toAmount": 100000,
+  "incrementBy": 1000,
+  "tournamentId": 1
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Increment rule not found
+- 403 Forbidden: Not the tournament owner
+
+
+ENDPOINT 6.4: Delete Increment Rule
+────────────────────────────────────
+URL: /api/increment-rules/{id}
+METHOD: DELETE
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- id (path): Increment Rule ID (required)
+
+RESPONSE (204 NO CONTENT): No body
+
+ERROR RESPONSES:
+- 404 Not Found: Increment rule not found
+- 403 Forbidden: Not the tournament owner
+
+
+================================================================================
+                      7. OWNER VIEW ENDPOINT
+================================================================================
+
+ENDPOINT 7.1: Get Owner Dashboard View
+───────────────────────────────────────
+URL: /api/tournaments/{tournamentId}/owner-view
+METHOD: GET
+AUTH: Required (Bearer Token)
+
+REQUEST PARAMS:
+- tournamentId (path): Tournament ID (required)
+
+DESCRIPTION:
+Provides a comprehensive dashboard view for the tournament owner with:
+- Tournament summary (name, purse, base price, etc.)
+- Player statistics (total, sold, unsold, available)
+- Team statistics (purse spent, players bought, remaining balance, etc.)
+
+RESPONSE (200 OK):
+{
+  "tournament": {
+    "id": 1,
+    "name": "IPL 2024",
+    "purseAmount": 100000000,
+    "playersPerTeam": 11,
+    "basePrice": 50000
+  },
+  "playerStats": {
+    "total": 150,
+    "sold": 120,
+    "unsold": 20,
+    "available": 10
+  },
+  "teamStats": [
+    {
+      "team": {
+        "id": 1,
+        "teamNumber": "T001",
+        "name": "Mumbai Indians",
+        "ownerName": "Nita Ambani",
+        "mobileNumber": "9876543210"
+      },
+      "purseAllocated": 100000000,
+      "purseSpent": 75000000,
+      "purseRemaining": 25000000,
+      "playersCount": 11,
+      "playerDetails": [
+        {
+          "auctionPlayerId": 1,
+          "playerNumber": "P001",
+          "firstName": "Virat",
+          "lastName": "Kohli",
+          "role": "BATSMAN",
+          "soldPrice": 250000
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+
+ERROR RESPONSES:
+- 404 Not Found: Tournament not found
+- 403 Forbidden: Not the tournament owner
+
+
+================================================================================
+                      GENERAL ERROR RESPONSES
+================================================================================
+
+Common HTTP Status Codes and Error Formats:
+
+400 BAD REQUEST:
+{
+  "fieldName": "error message",
+  "anotherField": "another error message"
+}
+
+401 UNAUTHORIZED (Invalid or Missing Token):
+{
+  "error": "UNAUTHORIZED",
+  "message": "Unauthorized",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+403 FORBIDDEN (User not authorized for resource):
+{
+  "error": "FORBIDDEN",
+  "message": "User does not have permission to access this resource",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+404 NOT FOUND:
+{
+  "error": "NOT_FOUND",
+  "message": "Resource not found",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+500 INTERNAL SERVER ERROR:
+{
+  "error": "INTERNAL_SERVER_ERROR",
+  "message": "An error occurred",
+  "timestamp": "2024-03-15T10:30:00Z"
+}
+
+
+================================================================================
+                    ANGULAR INTEGRATION TIPS
+================================================================================
+
+1. TOKEN MANAGEMENT:
+   - Store JWT token in localStorage or sessionStorage after login
+   - Include token in all authenticated requests:
+     headers: {
+       'Authorization': `Bearer ${token}`,
+       'Content-Type': 'application/json'
+     }
+
+2. INTERCEPTOR FOR JWT:
+   - Create an HTTP interceptor to automatically add JWT token to all requests
+   - Handle 401 responses by redirecting to login
+
+3. MULTIPART FORM DATA:
+   - For endpoints consuming multipart/form-data (tournaments, teams, players, auction players):
+     const formData = new FormData();
+     formData.append('name', 'value');
+     formData.append('logo', fileInput.files[0]);
+     // Send with axios/http client
+     // Do NOT set Content-Type header; browser will set it with correct boundary
+
+4. IMAGE DISPLAY:
+   - Image endpoints return binary data
+   - Set img src to: <img src="/api/tournaments/1/logo" />
+   - Or: <img [src]="'/api/players/' + playerId + '/photo'" />
+
+5. ERROR HANDLING:
+   - Check response status codes
+   - For 400 errors, iterate through error object to display field-specific errors
+   - For 401, clear token and redirect to login
+   - For 403, show "Access Denied" message
+   - For 404, show "Resource not found"
+
+6. PAGINATION (if needed in future):
+   - Currently not implemented but can be added to list endpoints
+   - Consider adding query params: ?page=0&size=20&sort=name
+
+7. DATE FORMAT:
+   - Send/receive dates in ISO format: YYYY-MM-DD
+   - Use Angular's DatePipe: {{ date | date: 'yyyy-MM-dd' }}
+
+8. ENVIRONMENT CONFIGURATION:
+   - Create environment files (environment.ts, environment.prod.ts)
+   - Set BASE_URL based on environment
+   - Example: http://localhost:8080 (dev), https://api.example.com (prod)
+
+9. TESTING:
+   - Use Postman/Insomnia to test endpoints
+   - Import this document and create collection
+   - Save common tokens/credentials for quick testing
+
+10. CORS CONFIGURATION:
+    - Backend should be configured to accept requests from Angular app origin
+    - Ensure credentials are allowed if using cookies
+
+
+================================================================================
+                        END OF API DOCUMENTATION
+================================================================================
+
+Document Generated: March 15, 2026
+Last Updated: March 15, 2026
+Version: 1.0
+

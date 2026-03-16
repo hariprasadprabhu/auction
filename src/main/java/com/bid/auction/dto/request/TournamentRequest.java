@@ -40,6 +40,9 @@ public class TournamentRequest {
     @Min(value = 1, message = "Base price must be at least 1")
     private Long basePrice;
 
+    @Min(value = 1, message = "Initial increment must be at least 1")
+    private Long initialIncrement;
+
     // UPCOMING | ONGOING | COMPLETED
     private String status;
 

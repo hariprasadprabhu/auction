@@ -6,9 +6,11 @@ import com.bid.auction.entity.Team;
 import com.bid.auction.entity.Tournament;
 import com.bid.auction.entity.User;
 import com.bid.auction.exception.ResourceNotFoundException;
+import com.bid.auction.repository.AuctionPlayerRepository;
 import com.bid.auction.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -20,6 +22,8 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TournamentService tournamentService;
+    private final TeamPurseService teamPurseService;
+    private final AuctionPlayerRepository auctionPlayerRepository;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<TeamResponse> getAllByTournament(Long tournamentId, User user) {
@@ -51,7 +55,12 @@ public class TeamService {
                 .build();
 
         setLogo(team, req.getLogo());
-        return toResponse(teamRepository.save(team));
+        Team savedTeam = teamRepository.save(team);
+
+        // Initialize team purse when team is created
+        teamPurseService.initializePurse(savedTeam, tournament);
+
+        return toResponse(savedTeam);
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -70,9 +79,20 @@ public class TeamService {
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
+    @Transactional
     public void delete(Long id, User user) {
         Team team = findTeam(id);
-        tournamentService.findAndVerifyOwner(team.getTournament().getId(), user);
+        Long tournamentId = team.getTournament().getId();
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        
+        // Delete all AuctionPlayer records linked to this team (soldToTeam)
+        // This includes all auction players bought by this team
+        auctionPlayerRepository.deleteBySoldToTeamId(id);
+        
+        // Delete team purse records for this team in its tournament
+        teamPurseService.deleteTeamPurseInTournament(id, tournamentId);
+        
+        // Delete the team (cascade delete via @OneToMany relationship)
         teamRepository.delete(team);
     }
 

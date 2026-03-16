@@ -5,6 +5,9 @@ spring:
   application:
     name: auction
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
   datasource:
     url: jdbc:postgresql://localhost:5432/auctiondeck
     username: postgres
@@ -40,4 +43,3 @@ logging:
   level:
     com.bid.auction: DEBUG
     org.springframework.security: INFO
-

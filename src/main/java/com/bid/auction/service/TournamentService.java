@@ -6,10 +6,12 @@ import com.bid.auction.entity.Tournament;
 import com.bid.auction.entity.User;
 import com.bid.auction.enums.TournamentStatus;
 import com.bid.auction.exception.ResourceNotFoundException;
+import com.bid.auction.repository.IncrementRuleRepository;
 import com.bid.auction.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -20,6 +22,8 @@ import java.util.List;
 public class TournamentService {
 
     private final TournamentRepository tournamentRepository;
+    private final TeamPurseService teamPurseService;
+    private final IncrementRuleRepository incrementRuleRepository;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<TournamentResponse> getAll(User user) {
@@ -44,6 +48,7 @@ public class TournamentService {
                 .purseAmount(req.getPurseAmount())
                 .playersPerTeam(req.getPlayersPerTeam())
                 .basePrice(req.getBasePrice())
+                .initialIncrement(req.getInitialIncrement())
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
                 .createdBy(user)
                 .build();
@@ -64,6 +69,7 @@ public class TournamentService {
         t.setPurseAmount(req.getPurseAmount());
         t.setPlayersPerTeam(req.getPlayersPerTeam());
         t.setBasePrice(req.getBasePrice());
+        t.setInitialIncrement(req.getInitialIncrement());
         if (req.getStatus() != null) {
             t.setStatus(parseStatus(req.getStatus(), t.getStatus()));
         }
@@ -71,12 +77,23 @@ public class TournamentService {
             setLogo(t, req.getLogo());
         }
 
-        return toResponse(tournamentRepository.save(t));
+        Tournament updatedTournament = tournamentRepository.save(t);
+
+        // Recalculate all team purses if financial details changed
+        teamPurseService.recalculateAllTeamPurses(updatedTournament);
+
+        return toResponse(updatedTournament);
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
+    @Transactional
     public void delete(Long id, User user) {
         Tournament t = findAndVerifyOwner(id, user);
+        
+        // Delete all increment rules for this tournament
+        incrementRuleRepository.deleteByTournamentId(id);
+        
+        // Delete the tournament (cascade will handle teams, players, auction players, etc.)
         tournamentRepository.delete(t);
     }
 
@@ -142,6 +159,7 @@ public class TournamentService {
                 .purseAmount(t.getPurseAmount())
                 .playersPerTeam(t.getPlayersPerTeam())
                 .basePrice(t.getBasePrice())
+                .initialIncrement(t.getInitialIncrement())
                 .logoUrl(t.getLogo() != null ? "/api/tournaments/" + t.getId() + "/logo" : null)
                 .build();
     }

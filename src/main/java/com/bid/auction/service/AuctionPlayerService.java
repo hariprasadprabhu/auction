@@ -32,6 +32,7 @@ public class AuctionPlayerService {
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
     private final TournamentService tournamentService;
+    private final TeamPurseService teamPurseService;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<AuctionPlayerResponse> getAllByTournament(Long tournamentId, User user) {
@@ -98,6 +99,80 @@ public class AuctionPlayerService {
         auctionPlayerRepository.delete(ap);
     }
 
+    // ── Remove from auction pool (called internally when a player is rejected) ──
+    @Transactional
+    public void removeFromAuctionIfPresent(Long playerId) {
+        auctionPlayerRepository.deleteByPlayerId(playerId);
+    }
+
+    // ── Delete player with auction refunds and team purse recalculation ────────
+    @Transactional
+    public void deletePlayerWithAuctionRefunds(Long playerId, Long tournamentId) {
+        // Get all auction players linked to this player
+        List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
+        
+        // For each linked auction player, if it's sold to a team, refund the team
+        for (AuctionPlayer ap : linkedAuctionPlayers) {
+            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+                // Refund the team by updating their purse
+                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+            }
+        }
+        
+        // Delete all auction players linked to this player
+        auctionPlayerRepository.deleteByPlayerId(playerId);
+    }
+
+    // ── Sync Player changes to linked AuctionPlayer rows ─────────────────────
+    @Transactional
+    public void syncFromPlayer(Player player) {
+        List<AuctionPlayer> linked = auctionPlayerRepository.findByPlayerId(player.getId());
+        if (linked.isEmpty()) return;
+        for (AuctionPlayer ap : linked) {
+            ap.setPlayerNumber(player.getPlayerNumber());
+            ap.setFirstName(player.getFirstName());
+            ap.setLastName(player.getLastName());
+            ap.setRole(player.getRole());
+            if (player.getPhoto() != null) {
+                ap.setPhoto(player.getPhoto());
+                ap.setPhotoContentType(player.getPhotoContentType());
+            }
+        }
+        auctionPlayerRepository.saveAll(linked);
+    }
+
+    // ── Auto-promote on approval (called internally when a player is approved) ─
+    @Transactional
+    public void autoPromoteToAuction(Long playerId) {
+        Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + playerId));
+
+        Tournament tournament = player.getTournament();
+
+        // Idempotent: skip if already in auction pool
+        if (auctionPlayerRepository.existsByPlayerIdAndTournamentId(playerId, tournament.getId())) {
+            return;
+        }
+
+        int nextOrder = auctionPlayerRepository.findMaxSortOrderByTournamentId(tournament.getId()) + 1;
+
+        AuctionPlayer ap = AuctionPlayer.builder()
+                .player(player)
+                .playerNumber(player.getPlayerNumber())
+                .firstName(player.getFirstName())
+                .lastName(player.getLastName())
+                .role(player.getRole())
+                .basePrice(tournament.getBasePrice())   // default from tournament; admin can update later
+                .photo(player.getPhoto())
+                .photoContentType(player.getPhotoContentType())
+                .auctionStatus(AuctionStatus.UPCOMING)
+                .tournament(tournament)
+                .sortOrder(nextOrder)
+                .build();
+
+        auctionPlayerRepository.save(ap);
+    }
+
     // ── Promote approved registered player into auction pool ──────────────────
     @Transactional
     public AuctionPlayerResponse promoteToAuction(Long playerId, AddToAuctionRequest req, User user) {
@@ -157,40 +232,57 @@ public class AuctionPlayerService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Team " + req.getTeamId() + " does not belong to this tournament"));
 
-        // Validate soldPrice >= basePrice
-        if (req.getSoldPrice() < ap.getBasePrice()) {
+        // Validate soldPrice >= basePrice (skip check when basePrice is not set)
+        if (ap.getBasePrice() != null && req.getSoldPrice() < ap.getBasePrice()) {
             throw new IllegalArgumentException(
                     "Sold price must be >= base price (" + ap.getBasePrice() + ")");
         }
 
+        // Get team purse for accurate validation
+        var teamPurse = teamPurseService.findByTeamAndTournament(team.getId(), tournament.getId());
+
         // Validate team slots not exceeded
-        long playersBought = auctionPlayerRepository.countBySoldToTeamId(team.getId());
-        if (playersBought >= tournament.getPlayersPerTeam()) {
+        if (teamPurse.getPlayersBought() >= tournament.getPlayersPerTeam()) {
             throw new IllegalArgumentException(
                     "Team has already reached the maximum of " + tournament.getPlayersPerTeam() + " players");
         }
 
-        // Validate remaining purse
-        List<AuctionPlayer> soldPlayers = auctionPlayerRepository.findBySoldToTeamId(team.getId());
-        long purseUsed = soldPlayers.stream()
-                .mapToLong(p -> p.getSoldPrice() != null ? p.getSoldPrice() : 0L).sum();
-        long purseRemaining = tournament.getPurseAmount() - purseUsed;
-        if (purseRemaining < req.getSoldPrice()) {
+        // Validate sold price does not exceed max bid per player
+        if (req.getSoldPrice() > teamPurse.getMaxBidPerPlayer()) {
             throw new IllegalArgumentException(
-                    "Team's remaining purse (" + purseRemaining + ") is less than the sold price");
+                    "Sold price (" + req.getSoldPrice() + ") exceeds max bid per player (" + 
+                    teamPurse.getMaxBidPerPlayer() + ")");
+        }
+
+        // Validate team's available purse (after reserving minimum squad fund)
+        if (teamPurse.getAvailableForBidding() < req.getSoldPrice()) {
+            throw new IllegalArgumentException(
+                    "Team's available purse for bidding (" + teamPurse.getAvailableForBidding() + 
+                    ") is less than the sold price (" + req.getSoldPrice() + ")");
         }
 
         ap.setAuctionStatus(AuctionStatus.SOLD);
         ap.setSoldToTeam(team);
         ap.setSoldPrice(req.getSoldPrice());
         auctionPlayerRepository.save(ap);
+
+        // Update team purse after player sale
+        teamPurseService.updatePurseOnPlayerSold(team, tournament, req.getSoldPrice());
+
         return toResponse(ap);
     }
 
     // ── Mark Unsold ───────────────────────────────────────────────────────────
+    @Transactional
     public Map<String, Object> markUnsold(Long id, User user) {
         AuctionPlayer ap = findAuctionPlayer(id);
         tournamentService.findAndVerifyOwner(ap.getTournament().getId(), user);
+
+        // If player was sold, revert team purse
+        if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+            teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+        }
+
         ap.setAuctionStatus(AuctionStatus.UNSOLD);
         ap.setSoldToTeam(null);
         ap.setSoldPrice(null);

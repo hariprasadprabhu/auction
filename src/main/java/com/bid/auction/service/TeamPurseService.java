@@ -34,29 +34,53 @@ public class TeamPurseService {
     @Transactional
     public TeamPurse updatePurseOnPlayerSold(Team team, Tournament tournament, Long soldPrice) {
         TeamPurse tp = findByTeamAndTournament(team.getId(), tournament.getId());
+        
+        // Deduct the sold price from purse
         tp.setPurseUsed(tp.getPurseUsed() + soldPrice);
         tp.setCurrentPurse(tp.getInitialPurse() - tp.getPurseUsed());
+        
+        // Update player counts
         tp.setPlayersBought(tp.getPlayersBought() + 1);
         tp.setRemainingSlots(tp.getRemainingSlots() - 1);
+        
         // Recalculate reserved fund based on new remainingSlots
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
         Long reserved = (long) (tp.getRemainingSlots() - 1) * basePrice;
         tp.setReservedFund(reserved);
+        
+        // Recalculate availableForBidding
         tp.setAvailableForBidding(Math.max(0L, tp.getCurrentPurse() - reserved));
+        
+        // Recalculate maxBidPerPlayer based on new availableForBidding
+        Long maxBid = Math.max(0L, tp.getCurrentPurse() - reserved);
+        tp.setMaxBidPerPlayer(maxBid);
+        
         return teamPurseRepository.save(tp);
     }
     @Transactional
     public TeamPurse updatePurseOnPlayerUnsold(Team team, Tournament tournament, Long unsolvedPrice) {
         TeamPurse tp = findByTeamAndTournament(team.getId(), tournament.getId());
+        
+        // Credit back the sold amount
         tp.setPurseUsed(Math.max(0L, tp.getPurseUsed() - unsolvedPrice));
         tp.setCurrentPurse(tp.getInitialPurse() - tp.getPurseUsed());
+        
+        // Update player counts
         tp.setPlayersBought(Math.max(0, tp.getPlayersBought() - 1));
         tp.setRemainingSlots(tp.getRemainingSlots() + 1);
+        
         // Recalculate reserved fund based on new remainingSlots
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
         Long reserved = (long) (tp.getRemainingSlots() - 1) * basePrice;
         tp.setReservedFund(reserved);
+        
+        // Recalculate availableForBidding
         tp.setAvailableForBidding(Math.max(0L, tp.getCurrentPurse() - reserved));
+        
+        // Recalculate maxBidPerPlayer based on new availableForBidding
+        Long maxBid = Math.max(0L, tp.getCurrentPurse() - reserved);
+        tp.setMaxBidPerPlayer(maxBid);
+        
         return teamPurseRepository.save(tp);
     }
     @Transactional

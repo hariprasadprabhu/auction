@@ -109,6 +109,18 @@ public class AuctionPlayerService {
     // ── Remove from auction pool (called internally when a player is rejected) ──
     @Transactional
     public void removeFromAuctionIfPresent(Long playerId) {
+        // Get all auction players linked to this player
+        List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
+        
+        // For each linked auction player, if it's sold to a team, refund the team
+        for (AuctionPlayer ap : linkedAuctionPlayers) {
+            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+                // Refund the team by updating their purse
+                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+            }
+        }
+        
+        // Delete all auction players linked to this player
         auctionPlayerRepository.deleteByPlayerId(playerId);
     }
 

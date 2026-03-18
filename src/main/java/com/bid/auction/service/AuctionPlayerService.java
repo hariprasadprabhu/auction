@@ -93,9 +93,16 @@ public class AuctionPlayerService {
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
+    @Transactional
     public void delete(Long id, User user) {
         AuctionPlayer ap = findAuctionPlayer(id);
         tournamentService.findAndVerifyOwner(ap.getTournament().getId(), user);
+        
+        // If this auction player is sold to a team, recalculate the team's purse
+        if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+            teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+        }
+        
         auctionPlayerRepository.delete(ap);
     }
 

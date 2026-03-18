@@ -32,7 +32,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:3000,https://auctiondeck-api-production.up.railway.app,https://auctiondeck-web.railway.app,https://auction-web.railway.app,https://auctiondeck-web.onrender.com,https://auction-web.onrender.com}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:3000,https://auctiondeck-api-production.up.railway.app,https://auctiondeck-web.railway.app,https://auction-web.railway.app,https://auctiondeck-web.onrender.com,https://auction-web.onrender.com,https://auctiondeck.railway.app,https://auctiondeck.onrender.com,https://auction-ui-production-397c.up.railway.app}")
     private String allowedOrigins;
 
     @Bean
@@ -45,22 +45,23 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Health check (for load balancers and health monitoring)
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // Allow CORS preflight OPTIONS requests
                         // Swagger UI / OpenAPI docs
                         .requestMatchers(
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**"
                         ).permitAll()
-                        // Public auth endpoints
-                        .requestMatchers("/auth/**").permitAll()
+                        // Public auth endpoints (both /auth/** and /api/auth/** due to context-path)
+                        .requestMatchers("/auth/**", "/api/auth/**").permitAll()
                         // Public tournament details (for registration page)
-                        .requestMatchers(HttpMethod.GET, "/tournaments/*/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/public", "/api/tournaments/*/public").permitAll()
                         // Public player self-registration
-                        .requestMatchers(HttpMethod.POST, "/players/register/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/players/register/**", "/api/players/register/**").permitAll()
                         // Public image endpoints (Angular <img [src]="...">)
-                        .requestMatchers(HttpMethod.GET, "/tournaments/*/logo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/teams/*/logo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/auction-players/*/photo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/players/*/photo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/logo", "/api/tournaments/*/logo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/teams/*/logo", "/api/teams/*/logo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auction-players/*/photo", "/api/auction-players/*/photo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/players/*/photo", "/api/players/*/photo").permitAll()
                         // Everything else requires auth
                         .anyRequest().authenticated()
                 )

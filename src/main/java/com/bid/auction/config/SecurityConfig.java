@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Health check (for load balancers and health monitoring)
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         // Swagger UI / OpenAPI docs
                         .requestMatchers(
                                 "/swagger-ui.html", "/swagger-ui/**",

@@ -95,7 +95,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(trimmedOrigins);
         
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        // When allowCredentials is true, cannot use wildcard - must list explicit headers
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-CSRF-Token"));
         config.setExposedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

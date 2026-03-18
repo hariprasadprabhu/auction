@@ -31,9 +31,18 @@ public class TournamentService {
                 .stream().map(this::toResponse).toList();
     }
 
-    // ── Get single ────────────────────────────────────────────────────────────
+    // ── Get single ────────────────────────────────────────────────────────
     public TournamentResponse getById(Long id, User user) {
         Tournament t = findAndVerifyOwner(id, user);
+        return toResponse(t);
+    }
+
+    /**
+     * Public method to get tournament details without authentication.
+     * Used by unauthenticated users viewing tournament info for registration.
+     */
+    public TournamentResponse getPublicDetails(Long id) {
+        Tournament t = findById(id);
         return toResponse(t);
     }
 

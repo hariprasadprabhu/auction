@@ -33,6 +33,15 @@ public class TournamentController {
         return ResponseEntity.ok(tournamentService.getById(id, currentUser(auth)));
     }
 
+    /**
+     * Public endpoint for tournament details (no authentication required).
+     * Used by unauthenticated users to view tournament info before registering.
+     */
+    @GetMapping("/{id}/public")
+    public ResponseEntity<TournamentResponse> getPublicDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(tournamentService.getPublicDetails(id));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TournamentResponse> create(
             @Valid @ModelAttribute TournamentRequest request,

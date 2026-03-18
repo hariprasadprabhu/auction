@@ -169,7 +169,7 @@ public class TournamentService {
                 .playersPerTeam(t.getPlayersPerTeam())
                 .basePrice(t.getBasePrice())
                 .initialIncrement(t.getInitialIncrement())
-                .logoUrl(t.getLogo() != null ? "/api/tournaments/" + t.getId() + "/logo" : null)
+                .logoUrl(t.getLogo() != null ? "/tournaments/" + t.getId() + "/logo" : null)
                 .build();
     }
 }

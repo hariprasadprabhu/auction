@@ -133,7 +133,7 @@ public class TeamService {
                 .ownerName(team.getOwnerName())
                 .mobileNumber(team.getMobileNumber())
                 .tournamentId(team.getTournament().getId())
-                .logoUrl(team.getLogo() != null ? "/api/teams/" + team.getId() + "/logo" : null)
+                .logoUrl(team.getLogo() != null ? "/teams/" + team.getId() + "/logo" : null)
                 .build();
     }
 }

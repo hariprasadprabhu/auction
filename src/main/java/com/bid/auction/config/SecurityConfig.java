@@ -85,7 +85,11 @@ public class SecurityConfig {
         
         // Parse comma-separated origins from environment variable
         String[] origins = allowedOrigins.split(",");
-        config.setAllowedOrigins(Arrays.asList(origins));
+        // Trim whitespace from each origin
+        List<String> trimmedOrigins = Arrays.stream(origins)
+                .map(String::trim)
+                .toList();
+        config.setAllowedOrigins(trimmedOrigins);
         
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "*"));

@@ -36,7 +36,7 @@ public class TeamController {
 
     // ── Tournament-scoped ─────────────────────────────────────────────────────
 
-    @GetMapping("/api/tournaments/{tournamentId}/teams")
+    @GetMapping("/tournaments/{tournamentId}/teams")
     @Operation(summary = "Get all teams for a tournament")
     @ApiResponse(responseCode = "200", description = "List of teams",
         content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamResponse.class))))
@@ -46,7 +46,7 @@ public class TeamController {
         return ResponseEntity.ok(teamService.getAllByTournament(tournamentId, currentUser(auth)));
     }
 
-    @PostMapping(value = "/api/tournaments/{tournamentId}/teams",
+    @PostMapping(value = "/tournaments/{tournamentId}/teams",
                  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create a team in a tournament",
                description = "Multipart form. `logo` is required (image/jpeg or image/png, max 2 MB).")
@@ -66,7 +66,7 @@ public class TeamController {
 
     // ── Direct team endpoints ─────────────────────────────────────────────────
 
-    @GetMapping("/api/teams/{id}")
+    @GetMapping("/teams/{id}")
     @Operation(summary = "Get team by ID")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Team found",
@@ -79,7 +79,7 @@ public class TeamController {
         return ResponseEntity.ok(teamService.getById(id, currentUser(auth)));
     }
 
-    @PutMapping(value = "/api/teams/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/teams/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Update team",
                description = "Multipart form. If `logo` is omitted the existing logo is kept.")
     @ApiResponses({
@@ -95,7 +95,7 @@ public class TeamController {
         return ResponseEntity.ok(teamService.update(id, request, currentUser(auth)));
     }
 
-    @DeleteMapping("/api/teams/{id}")
+    @DeleteMapping("/teams/{id}")
     @Operation(summary = "Delete team")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Deleted successfully"),
@@ -108,7 +108,7 @@ public class TeamController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/api/teams/{id}/logo")
+    @GetMapping("/teams/{id}/logo")
     @SecurityRequirements  // public
     @Operation(summary = "Get team logo image (public)",
                description = "Returns raw image bytes. No authentication required.")

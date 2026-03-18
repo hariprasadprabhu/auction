@@ -26,14 +26,14 @@ public class AuctionPlayerController {
 
     // ── Tournament-scoped ──────────────────────────────────────────────────────
 
-    @GetMapping("/api/tournaments/{tournamentId}/auction-players")
+    @GetMapping("/tournaments/{tournamentId}/auction-players")
     public ResponseEntity<List<AuctionPlayerResponse>> getAllByTournament(
             @PathVariable Long tournamentId, Authentication auth) {
         return ResponseEntity.ok(
                 auctionPlayerService.getAllByTournament(tournamentId, currentUser(auth)));
     }
 
-    @PostMapping(value = "/api/tournaments/{tournamentId}/auction-players",
+    @PostMapping(value = "/tournaments/{tournamentId}/auction-players",
                  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AuctionPlayerResponse> create(
             @PathVariable Long tournamentId,
@@ -43,7 +43,7 @@ public class AuctionPlayerController {
                 .body(auctionPlayerService.create(tournamentId, request, currentUser(auth)));
     }
 
-    @PatchMapping("/api/tournaments/{tournamentId}/auction-players/requeue-unsold")
+    @PatchMapping("/tournaments/{tournamentId}/auction-players/requeue-unsold")
     public ResponseEntity<Map<String, Object>> requeueUnsold(
             @PathVariable Long tournamentId, Authentication auth) {
         return ResponseEntity.ok(auctionPlayerService.requeueUnsold(tournamentId, currentUser(auth)));
@@ -51,13 +51,13 @@ public class AuctionPlayerController {
 
     // ── Direct auction-player endpoints ───────────────────────────────────────
 
-    @GetMapping("/api/auction-players/{id}")
+    @GetMapping("/auction-players/{id}")
     public ResponseEntity<AuctionPlayerResponse> getById(
             @PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(auctionPlayerService.getById(id, currentUser(auth)));
     }
 
-    @PutMapping(value = "/api/auction-players/{id}",
+    @PutMapping(value = "/auction-players/{id}",
                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AuctionPlayerResponse> update(
             @PathVariable Long id,
@@ -66,13 +66,13 @@ public class AuctionPlayerController {
         return ResponseEntity.ok(auctionPlayerService.update(id, request, currentUser(auth)));
     }
 
-    @DeleteMapping("/api/auction-players/{id}")
+    @DeleteMapping("/auction-players/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
         auctionPlayerService.delete(id, currentUser(auth));
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/api/auction-players/{id}/sell")
+    @PatchMapping("/auction-players/{id}/sell")
     public ResponseEntity<AuctionPlayerResponse> sell(
             @PathVariable Long id,
             @Valid @RequestBody SellPlayerRequest request,
@@ -80,7 +80,7 @@ public class AuctionPlayerController {
         return ResponseEntity.ok(auctionPlayerService.sell(id, request, currentUser(auth)));
     }
 
-    @PatchMapping("/api/auction-players/{id}/unsold")
+    @PatchMapping("/auction-players/{id}/unsold")
     public ResponseEntity<Map<String, Object>> markUnsold(
             @PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(auctionPlayerService.markUnsold(id, currentUser(auth)));
@@ -88,7 +88,7 @@ public class AuctionPlayerController {
 
     // ── Public photo ───────────────────────────────────────────────────────────
 
-    @GetMapping("/api/auction-players/{id}/photo")
+    @GetMapping("/auction-players/{id}/photo")
     public ResponseEntity<byte[]> getPhoto(@PathVariable Long id) {
         byte[] photo = auctionPlayerService.getPhoto(id);
         String contentType = auctionPlayerService.getPhotoContentType(id);

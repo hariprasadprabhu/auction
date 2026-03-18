@@ -18,7 +18,7 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class TeamPurseController {
     private final TeamPurseService teamPurseService;
-    @GetMapping("/api/tournaments/{tournamentId}/team-purses")
+    @GetMapping("/tournaments/{tournamentId}/team-purses")
     @Operation(summary = "Get all team purses for a tournament",
             description = "Returns financial details for all teams in a tournament")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
@@ -27,7 +27,7 @@ public class TeamPurseController {
         List<TeamPurseResponse> purses = teamPurseService.getAllTeamPurses(tournamentId);
         return ResponseEntity.ok(purses);
     }
-    @GetMapping("/api/tournaments/{tournamentId}/teams/{teamId}/purse")
+    @GetMapping("/tournaments/{tournamentId}/teams/{teamId}/purse")
     @Operation(summary = "Get team purse details",
             description = "Returns financial details for a specific team in a tournament")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
@@ -37,7 +37,7 @@ public class TeamPurseController {
         TeamPurseResponse purse = teamPurseService.getPurse(teamId, tournamentId);
         return ResponseEntity.ok(purse);
     }
-    @GetMapping("/api/teams/{teamId}/purses")
+    @GetMapping("/teams/{teamId}/purses")
     @Operation(summary = "Get team purses across all tournaments",
             description = "Returns financial details for a team across all tournaments it participates in")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")

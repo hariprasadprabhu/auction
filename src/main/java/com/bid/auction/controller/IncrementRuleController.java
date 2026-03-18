@@ -21,14 +21,14 @@ public class IncrementRuleController {
     private final IncrementRuleService incrementRuleService;
     private final AuthService authService;
 
-    @GetMapping("/api/tournaments/{tournamentId}/increment-rules")
+    @GetMapping("/tournaments/{tournamentId}/increment-rules")
     public ResponseEntity<List<IncrementRuleResponse>> getAll(
             @PathVariable Long tournamentId, Authentication auth) {
         return ResponseEntity.ok(
                 incrementRuleService.getAllByTournament(tournamentId, currentUser(auth)));
     }
 
-    @PostMapping("/api/tournaments/{tournamentId}/increment-rules")
+    @PostMapping("/tournaments/{tournamentId}/increment-rules")
     public ResponseEntity<IncrementRuleResponse> create(
             @PathVariable Long tournamentId,
             @Valid @RequestBody IncrementRuleRequest request,
@@ -37,7 +37,7 @@ public class IncrementRuleController {
                 .body(incrementRuleService.create(tournamentId, request, currentUser(auth)));
     }
 
-    @PutMapping("/api/increment-rules/{id}")
+    @PutMapping("/increment-rules/{id}")
     public ResponseEntity<IncrementRuleResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody IncrementRuleRequest request,
@@ -45,7 +45,7 @@ public class IncrementRuleController {
         return ResponseEntity.ok(incrementRuleService.update(id, request, currentUser(auth)));
     }
 
-    @DeleteMapping("/api/increment-rules/{id}")
+    @DeleteMapping("/increment-rules/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
         incrementRuleService.delete(id, currentUser(auth));
         return ResponseEntity.noContent().build();

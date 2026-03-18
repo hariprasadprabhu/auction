@@ -29,7 +29,7 @@ public class PlayerController {
 
     // ── Tournament-scoped (AUTH) ───────────────────────────────────────────────
 
-    @GetMapping("/api/tournaments/{tournamentId}/players")
+    @GetMapping("/tournaments/{tournamentId}/players")
     public ResponseEntity<List<PlayerResponse>> getAllByTournament(
             @PathVariable Long tournamentId,
             @RequestParam(required = false) String status,
@@ -41,7 +41,7 @@ public class PlayerController {
      * Get only APPROVED players who are eligible for the auction pool.
      * These are players ready to be added to AuctionPlayers.
      */
-    @GetMapping("/api/tournaments/{tournamentId}/players/approved")
+    @GetMapping("/tournaments/{tournamentId}/players/approved")
     public ResponseEntity<List<PlayerResponse>> getApprovedPlayers(
             @PathVariable Long tournamentId,
             Authentication auth) {
@@ -52,7 +52,7 @@ public class PlayerController {
      * Get player registration statistics for the tournament.
      * Shows count of PENDING, APPROVED, and REJECTED players.
      */
-    @GetMapping("/api/tournaments/{tournamentId}/players/stats")
+    @GetMapping("/tournaments/{tournamentId}/players/stats")
     public ResponseEntity<Map<String, Object>> getPlayerStats(
             @PathVariable Long tournamentId,
             Authentication auth) {
@@ -61,7 +61,7 @@ public class PlayerController {
 
     // ── Public self-registration ───────────────────────────────────────────────
 
-    @PostMapping(value = "/api/players/register/{tournamentId}",
+    @PostMapping(value = "/players/register/{tournamentId}",
                  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlayerResponse> register(
             @PathVariable Long tournamentId,
@@ -72,12 +72,12 @@ public class PlayerController {
 
     // ── Direct player endpoints (AUTH) ─────────────────────────────────────────
 
-    @GetMapping("/api/players/{id}")
+    @GetMapping("/players/{id}")
     public ResponseEntity<PlayerResponse> getById(@PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(playerService.getById(id, currentUser(auth)));
     }
 
-    @PutMapping(value = "/api/players/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/players/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlayerResponse> update(
             @PathVariable Long id,
             @ModelAttribute PlayerRegisterRequest request,
@@ -85,18 +85,18 @@ public class PlayerController {
         return ResponseEntity.ok(playerService.update(id, request, currentUser(auth)));
     }
 
-    @DeleteMapping("/api/players/{id}")
+    @DeleteMapping("/players/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
         playerService.delete(id, currentUser(auth));
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/api/players/{id}/approve")
+    @PatchMapping("/players/{id}/approve")
     public ResponseEntity<Map<String, Object>> approve(@PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(playerService.approve(id, currentUser(auth)));
     }
 
-    @PatchMapping("/api/players/{id}/reject")
+    @PatchMapping("/players/{id}/reject")
     public ResponseEntity<Map<String, Object>> reject(@PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(playerService.reject(id, currentUser(auth)));
     }
@@ -106,7 +106,7 @@ public class PlayerController {
      * Copies name, playerNumber, role and photo from the Player record.
      * Admin provides the extra cricket stats (age, city, battingStyle, bowlingStyle, basePrice).
      */
-    @PostMapping("/api/players/{id}/add-to-auction")
+    @PostMapping("/players/{id}/add-to-auction")
     public ResponseEntity<AuctionPlayerResponse> addToAuction(
             @PathVariable Long id,
             @Valid @RequestBody AddToAuctionRequest request,
@@ -117,7 +117,7 @@ public class PlayerController {
 
     // ── Public image endpoints ─────────────────────────────────────────────────
 
-    @GetMapping("/api/players/{id}/photo")
+    @GetMapping("/players/{id}/photo")
     public ResponseEntity<byte[]> getPhoto(@PathVariable Long id) {
         byte[] photo = playerService.getPhoto(id);
         String contentType = playerService.getPhotoContentType(id);
@@ -128,7 +128,7 @@ public class PlayerController {
 
     // ── Auth-required payment proof ────────────────────────────────────────────
 
-    @GetMapping("/api/players/{id}/payment-proof")
+    @GetMapping("/players/{id}/payment-proof")
     public ResponseEntity<byte[]> getPaymentProof(@PathVariable Long id, Authentication auth) {
         // ownership will be verified inside the service
         playerService.getById(id, currentUser(auth)); // triggers ownership check

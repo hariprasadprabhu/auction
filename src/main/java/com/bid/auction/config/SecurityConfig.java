@@ -49,16 +49,16 @@ public class SecurityConfig {
                                 "/v3/api-docs", "/v3/api-docs/**"
                         ).permitAll()
                         // Public auth endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         // Public tournament details (for registration page)
-                        .requestMatchers(HttpMethod.GET, "/api/tournaments/*/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/public").permitAll()
                         // Public player self-registration
-                        .requestMatchers(HttpMethod.POST, "/api/players/register/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/players/register/**").permitAll()
                         // Public image endpoints (Angular <img [src]="...">)
-                        .requestMatchers(HttpMethod.GET, "/api/tournaments/*/logo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/teams/*/logo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auction-players/*/photo").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/players/*/photo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/logo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/teams/*/logo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auction-players/*/photo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/players/*/photo").permitAll()
                         // Everything else requires auth
                         .anyRequest().authenticated()
                 )

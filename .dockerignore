@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# Build
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+*.rar
+*.zip
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.m2/
+
+# Documentation
+*.md
+docs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+.docker
+docker-compose.override.yml
+Dockerfile.*
+
+# OS
+.DS_Store
+Thumbs.db
+.thumbs.db
+
+# Node (if used)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+

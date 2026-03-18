@@ -1,0 +1,45 @@
+# This is a render.yaml configuration file
+# You can optionally commit this to enable Infrastructure as Code deployments
+# For now, use the Render dashboard to deploy, but keep this for reference
+
+services:
+  - type: web
+    name: auctiondeck-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon  # Change to your preferred region
+    plan: standard  # starter or standard
+    
+    # Auto-deploy when you push to main branch
+    autoDeploy: true
+    
+    # Environment variables (these should be set via dashboard for security)
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JPA_HIBERNATE_DDL_AUTO
+        value: update
+      # DATABASE_URL should NOT be here - set it privately in the dashboard
+      # - key: DATABASE_URL
+      #   value: postgresql://...
+    
+    # Service details
+    buildCommand: null  # Docker handles the build
+    startCommand: null  # CMD in Dockerfile handles startup
+    
+    # Health check (Render will use Docker HEALTHCHECK from Dockerfile)
+    healthCheckPath: /api/health
+    healthCheckInterval: 30
+    
+    # Resource limits
+    maxInstanceCount: 1  # Set higher if you want auto-scaling (paid feature)
+
+databases:
+  - name: auctiondeck-db
+    databaseName: auctiondeck
+    user: postgres
+    plan: starter  # starter or pro (managed PostgreSQL)
+    ipAllowList: []  # Allow all IPs
+

@@ -89,11 +89,14 @@ public class SecurityConfig {
         List<String> trimmedOrigins = Arrays.stream(origins)
                 .map(String::trim)
                 .toList();
+        
+        System.out.println("🔐 CORS Configuration - Allowed Origins: " + trimmedOrigins);
+        
         config.setAllowedOrigins(trimmedOrigins);
         
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "*"));
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

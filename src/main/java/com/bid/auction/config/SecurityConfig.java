@@ -32,7 +32,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:3000,https://auctiondeck-api-production.up.railway.app}")
     private String allowedOrigins;
 
     @Bean

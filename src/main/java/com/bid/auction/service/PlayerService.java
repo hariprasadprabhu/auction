@@ -9,7 +9,9 @@ import com.bid.auction.enums.PlayerStatus;
 import com.bid.auction.exception.ResourceNotFoundException;
 import com.bid.auction.repository.PlayerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ public class PlayerService {
 
     private final PlayerRepository playerRepository;
     private final TournamentService tournamentService;
+    private final AuctionPlayerService auctionPlayerService;
 
     // ── List (auth) ───────────────────────────────────────────────────────────
     public List<PlayerResponse> getAllByTournament(Long tournamentId, String status, User user) {
@@ -68,6 +71,7 @@ public class PlayerService {
     }
 
     // ── Update (auth) ─────────────────────────────────────────────────────────
+    @Transactional
     public PlayerResponse update(Long id, PlayerRegisterRequest req, User user) {
         Player player = findPlayer(id);
         tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
@@ -80,30 +84,45 @@ public class PlayerService {
         if (req.getPaymentProof() != null && !req.getPaymentProof().isEmpty())
             setPaymentProof(player, req.getPaymentProof());
 
-        return toResponse(playerRepository.save(player));
+        Player saved = playerRepository.save(player);
+        auctionPlayerService.syncFromPlayer(saved);   // propagate to AuctionPlayer
+        return toResponse(saved);
     }
 
     // ── Delete (auth) ─────────────────────────────────────────────────────────
+    @Transactional
     public void delete(Long id, User user) {
         Player player = findPlayer(id);
-        tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
+        Long tournamentId = player.getTournament().getId();
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        
+        // Handle auction players linked to this player:
+        // - If SOLD, refund the team and update team purse
+        // - Delete all linked auction player records
+        auctionPlayerService.deletePlayerWithAuctionRefunds(id, tournamentId);
+        
+        // Delete the player
         playerRepository.delete(player);
     }
 
     // ── Approve / Reject ──────────────────────────────────────────────────────
+    @Transactional
     public Map<String, Object> approve(Long id, User user) {
         Player player = findPlayer(id);
         tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
         player.setStatus(PlayerStatus.APPROVED);
         playerRepository.save(player);
+        auctionPlayerService.autoPromoteToAuction(player.getId());
         return Map.of("id", player.getId(), "status", player.getStatus().name());
     }
 
+    @Transactional
     public Map<String, Object> reject(Long id, User user) {
         Player player = findPlayer(id);
         tournamentService.findAndVerifyOwner(player.getTournament().getId(), user);
         player.setStatus(PlayerStatus.REJECTED);
         playerRepository.save(player);
+        auctionPlayerService.removeFromAuctionIfPresent(player.getId());
         return Map.of("id", player.getId(), "status", player.getStatus().name());
     }
 

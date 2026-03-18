@@ -3,6 +3,7 @@ package com.bid.auction.config;
 import com.bid.auction.security.JwtAuthFilter;
 import com.bid.auction.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -29,6 +31,9 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:3000}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -45,6 +50,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // Public auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Public tournament details (for registration page)
+                        .requestMatchers(HttpMethod.GET, "/api/tournaments/*/public").permitAll()
                         // Public player self-registration
                         .requestMatchers(HttpMethod.POST, "/api/players/register/**").permitAll()
                         // Public image endpoints (Angular <img [src]="...">)
@@ -73,11 +80,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        
+        // Parse comma-separated origins from environment variable
+        String[] origins = allowedOrigins.split(",");
+        config.setAllowedOrigins(Arrays.asList(origins));
+        
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "*"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

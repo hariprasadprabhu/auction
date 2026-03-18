@@ -1,26 +1,42 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+    min-response-size: 1024
 
 spring:
   application:
     name: auction
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/auctiondeck
-    username: postgres
-    password: postgres
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/auctiondeck}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
         jdbc:
           lob:
             non_contextual_creation: true
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   servlet:
     multipart:
@@ -30,14 +46,14 @@ spring:
 
 app:
   jwt:
-    secret: "YourSuperSecretKeyHereMustBeAtLeast256BitsLongForHmacSha256!!"
-    expiration: 86400000
+    secret: ${JWT_SECRET:YourSuperSecretKeyHereMustBeAtLeast256BitsLongForHmacSha256!!}
+    expiration: ${JWT_EXPIRATION:86400000}
 
   cors:
-    allowed-origins: "http://localhost:4200"
+    allowed-origins: ${CORS_ORIGINS:http://localhost:4200,http://localhost:3000}
 
 logging:
   level:
-    com.bid.auction: DEBUG
+    root: ${LOG_LEVEL:INFO}
+    com.bid.auction: ${COM_BID_AUCTION_LOG_LEVEL:DEBUG}
     org.springframework.security: INFO
-

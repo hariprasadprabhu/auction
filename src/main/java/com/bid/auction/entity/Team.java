@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "teams")
@@ -37,6 +38,10 @@ public class Team {
     @JoinColumn(name = "tournament_id", nullable = false)
     @ToString.Exclude
     private Tournament tournament;
+
+    @OneToMany(mappedBy = "soldToTeam", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<AuctionPlayer> auctionPlayers;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

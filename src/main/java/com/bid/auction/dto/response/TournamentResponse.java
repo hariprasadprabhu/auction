@@ -22,6 +22,7 @@ public class TournamentResponse {
     private Long purseAmount;
     private Integer playersPerTeam;
     private Long basePrice;
+    private Long initialIncrement;
     private String logoUrl;
 }
 

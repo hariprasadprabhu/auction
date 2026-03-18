@@ -37,6 +37,7 @@ public class Tournament {
     private Long purseAmount;
     private Integer playersPerTeam;
     private Long basePrice;
+    private Long initialIncrement;
 
     @Column(name = "logo", columnDefinition = "bytea")
     private byte[] logo;

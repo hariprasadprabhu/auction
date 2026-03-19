@@ -126,6 +126,69 @@ public class PlayerService {
         return Map.of("id", player.getId(), "status", player.getStatus().name());
     }
 
+    // ── Approve All / Reject All ──────────────────────────────────────────────
+    @Transactional
+    public Map<String, Object> approveAll(Long tournamentId, List<Long> playerIds, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        
+        List<Player> playersToApprove = playerRepository.findAll().stream()
+                .filter(p -> playerIds.contains(p.getId()))
+                .filter(p -> p.getTournament().getId().equals(tournamentId))
+                .toList();
+        
+        if (playersToApprove.isEmpty()) {
+            return Map.of(
+                "message", "No players found to approve",
+                "approvedCount", 0,
+                "status", "SUCCESS"
+            );
+        }
+        
+        for (Player player : playersToApprove) {
+            player.setStatus(PlayerStatus.APPROVED);
+            playerRepository.save(player);
+            auctionPlayerService.autoPromoteToAuction(player.getId());
+        }
+        
+        return Map.of(
+            "message", "Players approved successfully",
+            "approvedCount", playersToApprove.size(),
+            "status", "SUCCESS"
+        );
+    }
+
+    @Transactional
+    public Map<String, Object> rejectAll(Long tournamentId, List<Long> playerIds, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        
+        List<Player> playersToReject = playerRepository.findAll().stream()
+                .filter(p -> playerIds.contains(p.getId()))
+                .filter(p -> p.getTournament().getId().equals(tournamentId))
+                .toList();
+        
+        if (playersToReject.isEmpty()) {
+            return Map.of(
+                "message", "No players found to reject",
+                "rejectedCount", 0,
+                "status", "SUCCESS"
+            );
+        }
+        
+        for (Player player : playersToReject) {
+            player.setStatus(PlayerStatus.REJECTED);
+            playerRepository.save(player);
+            auctionPlayerService.removeFromAuctionIfPresent(player.getId());
+        }
+        
+        return Map.of(
+            "message", "Players rejected successfully",
+            "rejectedCount", playersToReject.size(),
+            "status", "SUCCESS"
+        );
+    }
+
     // ── Get Approved Players (only these can enter auction) ──────────────────
     public List<PlayerResponse> getApprovedByTournament(Long tournamentId, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);

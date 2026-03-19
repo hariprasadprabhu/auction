@@ -1,6 +1,7 @@
 package com.bid.auction.controller;
 
 import com.bid.auction.dto.request.AddToAuctionRequest;
+import com.bid.auction.dto.request.BulkPlayerActionRequest;
 import com.bid.auction.dto.request.PlayerRegisterRequest;
 import com.bid.auction.dto.response.AuctionPlayerResponse;
 import com.bid.auction.dto.response.PlayerResponse;
@@ -99,6 +100,32 @@ public class PlayerController {
     @PatchMapping("/players/{id}/reject")
     public ResponseEntity<Map<String, Object>> reject(@PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(playerService.reject(id, currentUser(auth)));
+    }
+
+    /**
+     * Approve specified players for a tournament.
+     * Only the tournament owner can perform this action.
+     * Players in the provided list will be changed to APPROVED status.
+     */
+    @PatchMapping("/tournaments/{tournamentId}/players/approve-all")
+    public ResponseEntity<Map<String, Object>> approveAllPlayers(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody BulkPlayerActionRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.approveAll(tournamentId, request.getPlayerIds(), currentUser(auth)));
+    }
+
+    /**
+     * Reject specified players for a tournament.
+     * Only the tournament owner can perform this action.
+     * Players in the provided list will be changed to REJECTED status.
+     */
+    @PatchMapping("/tournaments/{tournamentId}/players/reject-all")
+    public ResponseEntity<Map<String, Object>> rejectAllPlayers(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody BulkPlayerActionRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.rejectAll(tournamentId, request.getPlayerIds(), currentUser(auth)));
     }
 
     /**

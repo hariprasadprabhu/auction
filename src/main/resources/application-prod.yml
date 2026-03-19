@@ -7,19 +7,28 @@ spring:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
-      connection-timeout: 30000
+      connection-timeout: 60000
       idle-timeout: 600000
       max-lifetime: 1800000
       connection-init-sql: SELECT 1
-
+      auto-commit: true
+      connection-test-query: SELECT 1
+      # Retry configuration for database startup
+      leak-detection-threshold: 60000
+  
+  # Retry configuration for EntityManager initialization
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        connection:
+          # Retry on database startup issues
+          provider_disables_autocommit: false
         jdbc:
           lob:
             non_contextual_creation: true

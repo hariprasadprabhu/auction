@@ -6,7 +6,7 @@ services:
   - type: web
     name: auctiondeck-api
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: Dockerfile
     region: oregon  # Change to your preferred region
     plan: standard  # starter or standard
     

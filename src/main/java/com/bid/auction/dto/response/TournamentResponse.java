@@ -18,6 +18,11 @@ public class TournamentResponse {
     private String sport;
     private Integer totalTeams;
     private Integer totalPlayers;
+    /**
+     * Read-only field: Auto-calculated based on tournament configuration.
+     * Cannot be modified via API.
+     */
+    private Integer teamAllowed;
     private String status;
     private Long purseAmount;
     private Integer playersPerTeam;

@@ -164,6 +164,7 @@ public class TournamentService {
                 .sport(t.getSport())
                 .totalTeams(t.getTotalTeams())
                 .totalPlayers(t.getTotalPlayers())
+                .teamAllowed(t.getTeamAllowed())
                 .status(t.getStatus() != null ? t.getStatus().name() : null)
                 .purseAmount(t.getPurseAmount())
                 .playersPerTeam(t.getPlayersPerTeam())

@@ -43,8 +43,13 @@ public class TeamService {
     public TeamResponse create(Long tournamentId, TeamRequest req, User user) {
         Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
 
-        long count = teamRepository.countByTournamentId(tournamentId);
-        String teamNumber = String.format("T%03d", count + 1);
+        // Check if teamAllowed limit has been reached
+        long currentTeamCount = teamRepository.countByTournamentId(tournamentId);
+        if (tournament.getTeamAllowed() != null && currentTeamCount >= tournament.getTeamAllowed()) {
+            throw new IllegalArgumentException("Reached maximum allowed teams: " + tournament.getTeamAllowed());
+        }
+
+        String teamNumber = String.format("T%03d", currentTeamCount + 1);
 
         Team team = Team.builder()
                 .teamNumber(teamNumber)

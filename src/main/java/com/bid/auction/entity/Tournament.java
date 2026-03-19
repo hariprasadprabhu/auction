@@ -29,6 +29,9 @@ public class Tournament {
     private String sport;
     private Integer totalTeams;
     private Integer totalPlayers;
+    
+    @Setter(AccessLevel.PACKAGE)
+    private Integer teamAllowed;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

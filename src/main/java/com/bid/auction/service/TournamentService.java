@@ -54,6 +54,7 @@ public class TournamentService {
                 .sport(req.getSport())
                 .totalTeams(req.getTotalTeams())
                 .totalPlayers(req.getTotalPlayers())
+                .teamAllowed(2)  // Always set to 2 on tournament creation
                 .purseAmount(req.getPurseAmount())
                 .playersPerTeam(req.getPlayersPerTeam())
                 .basePrice(req.getBasePrice())

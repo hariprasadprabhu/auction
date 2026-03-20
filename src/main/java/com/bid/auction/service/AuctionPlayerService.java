@@ -278,13 +278,9 @@ public class AuctionPlayerService {
         teamPurseService.updatePurseOnPlayerSold(team, tournament, req.getSoldPrice());
 
         // Update linked player status to SOLD (since players are tournament-specific)
+        // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
         if (ap.getPlayer() != null) {
-            Player linkedPlayer = playerRepository.findById(ap.getPlayer().getId())
-                    .orElse(null);
-            if (linkedPlayer != null) {
-                linkedPlayer.setStatus(PlayerStatus.SOLD);
-                playerRepository.save(linkedPlayer);
-            }
+            playerRepository.updateStatusById(ap.getPlayer().getId(), PlayerStatus.SOLD);
         }
 
         return toResponse(ap);
@@ -307,13 +303,9 @@ public class AuctionPlayerService {
         auctionPlayerRepository.save(ap);
 
         // Update linked player status to UNSOLD
+        // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
         if (ap.getPlayer() != null) {
-            Player linkedPlayer = playerRepository.findById(ap.getPlayer().getId())
-                    .orElse(null);
-            if (linkedPlayer != null) {
-                linkedPlayer.setStatus(PlayerStatus.UNSOLD);
-                playerRepository.save(linkedPlayer);
-            }
+            playerRepository.updateStatusById(ap.getPlayer().getId(), PlayerStatus.UNSOLD);
         }
 
         return Map.of("id", ap.getId(), "auctionStatus", ap.getAuctionStatus().name());
@@ -380,9 +372,9 @@ public class AuctionPlayerService {
             }
             
             // Reset player status from SOLD/UNSOLD back to APPROVED
+            // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
             if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
-                player.setStatus(PlayerStatus.APPROVED);
-                playerRepository.save(player);
+                playerRepository.updateStatusById(player.getId(), PlayerStatus.APPROVED);
             }
             
             auctionPlayerRepository.save(ap);
@@ -412,11 +404,11 @@ public class AuctionPlayerService {
         }
         
         // Step 1b: Reset player status from SOLD/UNSOLD back to APPROVED for all players
+        // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
         for (AuctionPlayer ap : auctionPlayers) {
             Player player = ap.getPlayer();
             if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
-                player.setStatus(PlayerStatus.APPROVED);
-                playerRepository.save(player);
+                playerRepository.updateStatusById(player.getId(), PlayerStatus.APPROVED);
             }
         }
         

@@ -11,10 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Long> {
-    List<AuctionPlayer> findByTournamentIdOrderBySortOrder(Long tournamentId);
-    List<AuctionPlayer> findByTournamentId(Long tournamentId);
+    
+    // Eager fetch soldToTeam to prevent lazy loading errors
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId ORDER BY ap.sortOrder ASC")
+    List<AuctionPlayer> findByTournamentIdOrderBySortOrder(@Param("tournamentId") Long tournamentId);
+    
+    // Eager fetch soldToTeam to prevent lazy loading errors
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId")
+    List<AuctionPlayer> findByTournamentId(@Param("tournamentId") Long tournamentId);
+    
     List<AuctionPlayer> findBySoldToTeamId(Long teamId);
-    List<AuctionPlayer> findByTournamentIdAndAuctionStatus(Long tournamentId, AuctionStatus status);
+    
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId AND ap.auctionStatus = :status")
+    List<AuctionPlayer> findByTournamentIdAndAuctionStatus(@Param("tournamentId") Long tournamentId, @Param("status") AuctionStatus status);
+    
     long countBySoldToTeamId(Long teamId);
     boolean existsByPlayerIdAndTournamentId(Long playerId, Long tournamentId);
 

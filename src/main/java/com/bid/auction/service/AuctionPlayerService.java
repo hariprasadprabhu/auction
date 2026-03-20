@@ -398,6 +398,10 @@ public class AuctionPlayerService {
         // Step 2: Delete all auction players
         auctionPlayerRepository.deleteAll(auctionPlayers);
         
+        // Step 2b: Delete ALL team purses for this tournament BEFORE reinitializing
+        // This prevents unique constraint violations when reinitializing
+        teamPurseService.deleteTeamPursesForTournament(tournamentId);
+        
         // Step 3: Get all approved players in the tournament
         List<Player> approvedPlayers = playerRepository.findByTournamentAndStatus(tournament, PlayerStatus.APPROVED);
         

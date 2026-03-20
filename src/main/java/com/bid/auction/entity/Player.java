@@ -41,6 +41,7 @@ public class Player {
     private String paymentProofContentType;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(255) check (status in ('PENDING', 'APPROVED', 'REJECTED', 'SOLD', 'UNSOLD'))")
     @Builder.Default
     private PlayerStatus status = PlayerStatus.PENDING;
 

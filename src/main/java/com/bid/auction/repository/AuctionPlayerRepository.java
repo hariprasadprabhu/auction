@@ -19,14 +19,12 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     boolean existsByPlayerIdAndTournamentId(Long playerId, Long tournamentId);
 
     /**
-     * Bulk delete by player id — using @Modifying/@Query avoids the Hibernate
-     * "collection with orphanRemoval was no longer referenced" error that can
-     * occur with a derived-delete when the parent Tournament is already in the
-     * session and its auctionPlayers collection carries orphanRemoval=true.
+     * Delete all auction players linked to a specific player.
+     * Using custom query to handle null player references properly.
      */
     @Modifying(clearAutomatically = true)
     @Transactional
-    @Query("DELETE FROM AuctionPlayer ap WHERE ap.player.id = :playerId")
+    @Query("DELETE FROM AuctionPlayer ap WHERE ap.player IS NOT NULL AND ap.player.id = :playerId")
     void deleteByPlayerId(@Param("playerId") Long playerId);
 
     @Modifying(clearAutomatically = true)

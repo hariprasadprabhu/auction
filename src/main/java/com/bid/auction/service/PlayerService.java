@@ -99,7 +99,7 @@ public class PlayerService {
         // Handle auction players linked to this player:
         // - If SOLD, refund the team and update team purse
         // - Delete all linked auction player records
-        auctionPlayerService.deletePlayerWithAuctionRefunds(id, tournamentId);
+        auctionPlayerService.deletePlayerWithAuctionRefunds(id);
         
         // Delete the player
         playerRepository.delete(player);

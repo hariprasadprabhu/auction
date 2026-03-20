@@ -125,21 +125,10 @@ public class AuctionPlayerService {
     }
 
     // ── Delete player with auction refunds and team purse recalculation ────────
+    // (Alias for removeFromAuctionIfPresent - kept for backwards compatibility)
     @Transactional
-    public void deletePlayerWithAuctionRefunds(Long playerId, Long tournamentId) {
-        // Get all auction players linked to this player
-        List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
-        
-        // For each linked auction player, if it's sold to a team, refund the team
-        for (AuctionPlayer ap : linkedAuctionPlayers) {
-            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
-                // Refund the team by updating their purse
-                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
-            }
-        }
-        
-        // Delete all auction players linked to this player
-        auctionPlayerRepository.deleteByPlayerId(playerId);
+    public void deletePlayerWithAuctionRefunds(Long playerId) {
+        removeFromAuctionIfPresent(playerId);
     }
 
     // ── Sync Player changes to linked AuctionPlayer rows ─────────────────────
@@ -288,7 +277,7 @@ public class AuctionPlayerService {
         // Update team purse after player sale
         teamPurseService.updatePurseOnPlayerSold(team, tournament, req.getSoldPrice());
 
-        // Update linked player status to SOLD
+        // Update linked player status to SOLD (since players are tournament-specific)
         if (ap.getPlayer() != null) {
             ap.getPlayer().setStatus(PlayerStatus.SOLD);
             playerRepository.save(ap.getPlayer());

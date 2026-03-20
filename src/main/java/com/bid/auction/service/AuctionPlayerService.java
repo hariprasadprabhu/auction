@@ -279,8 +279,12 @@ public class AuctionPlayerService {
 
         // Update linked player status to SOLD (since players are tournament-specific)
         if (ap.getPlayer() != null) {
-            ap.getPlayer().setStatus(PlayerStatus.SOLD);
-            playerRepository.save(ap.getPlayer());
+            Player linkedPlayer = playerRepository.findById(ap.getPlayer().getId())
+                    .orElse(null);
+            if (linkedPlayer != null) {
+                linkedPlayer.setStatus(PlayerStatus.SOLD);
+                playerRepository.save(linkedPlayer);
+            }
         }
 
         return toResponse(ap);
@@ -304,8 +308,12 @@ public class AuctionPlayerService {
 
         // Update linked player status to UNSOLD
         if (ap.getPlayer() != null) {
-            ap.getPlayer().setStatus(PlayerStatus.UNSOLD);
-            playerRepository.save(ap.getPlayer());
+            Player linkedPlayer = playerRepository.findById(ap.getPlayer().getId())
+                    .orElse(null);
+            if (linkedPlayer != null) {
+                linkedPlayer.setStatus(PlayerStatus.UNSOLD);
+                playerRepository.save(linkedPlayer);
+            }
         }
 
         return Map.of("id", ap.getId(), "auctionStatus", ap.getAuctionStatus().name());

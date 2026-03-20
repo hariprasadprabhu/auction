@@ -333,6 +333,121 @@ public class AuctionPlayerService {
         return ap.getPhotoContentType() != null ? ap.getPhotoContentType() : "image/jpeg";
     }
 
+    // ── Reset Auction Players ─────────────────────────────────────────────────
+    @Transactional
+    public Map<String, Object> resetAuctionPlayers(Long tournamentId, List<Long> playerIds, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        
+        int processedCount = 0;
+        int skippedCount = 0;
+        
+        for (Long playerId : playerIds) {
+            AuctionPlayer ap = auctionPlayerRepository.findById(playerId).orElse(null);
+            
+            if (ap == null || !ap.getTournament().getId().equals(tournamentId)) {
+                skippedCount++;
+                continue;
+            }
+            
+            // If player was sold, refund the team
+            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+            }
+            
+            // Get the linked registered player to check status
+            Player player = ap.getPlayer();
+            
+            if (player != null && player.getStatus() == PlayerStatus.APPROVED) {
+                // If approved, set available for auction (UPCOMING status)
+                ap.setAuctionStatus(AuctionStatus.UPCOMING);
+                ap.setSoldToTeam(null);
+                ap.setSoldPrice(null);
+            } else {
+                // If not approved, remove from available auction (set to UNSOLD)
+                ap.setAuctionStatus(AuctionStatus.UNSOLD);
+                ap.setSoldToTeam(null);
+                ap.setSoldPrice(null);
+            }
+            
+            auctionPlayerRepository.save(ap);
+            processedCount++;
+        }
+        
+        return Map.of(
+            "processedCount", processedCount,
+            "skippedCount", skippedCount,
+            "totalRequested", playerIds.size()
+        );
+    }
+
+    // ── Reset Entire Auction ─────────────────────────────────────────────────
+    @Transactional
+    public Map<String, Object> resetEntireAuction(Long tournamentId, User user) {
+        Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
+        
+        // Get all auction players in this tournament
+        List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
+        
+        // Step 1: Refund all sold players back to their teams
+        for (AuctionPlayer ap : auctionPlayers) {
+            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
+                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), tournament, ap.getSoldPrice());
+            }
+        }
+        
+        // Step 2: Delete all auction players
+        auctionPlayerRepository.deleteAll(auctionPlayers);
+        
+        // Step 3: Get all approved players in the tournament
+        List<Player> approvedPlayers = playerRepository.findByTournamentAndStatus(tournament, PlayerStatus.APPROVED);
+        
+        // Step 4: Re-insert approved players into auction pool with current tournament settings
+        int nextOrder = 1;
+        for (Player player : approvedPlayers) {
+            AuctionPlayer ap = AuctionPlayer.builder()
+                    .player(player)
+                    .playerNumber(player.getPlayerNumber())
+                    .firstName(player.getFirstName())
+                    .lastName(player.getLastName())
+                    .role(player.getRole())
+                    .basePrice(tournament.getBasePrice())  // Uses current tournament base price
+                    .photo(player.getPhoto())
+                    .photoContentType(player.getPhotoContentType())
+                    .auctionStatus(AuctionStatus.UPCOMING)
+                    .tournament(tournament)
+                    .sortOrder(nextOrder++)
+                    .build();
+            auctionPlayerRepository.save(ap);
+        }
+        
+        // Step 5: Reset all team purses using CURRENT tournament settings
+        // This recalculates based on latest:
+        //   - purseAmount per team
+        //   - playersPerTeam
+        //   - basePrice
+        List<Team> teams = teamRepository.findByTournamentId(tournamentId);
+        for (Team team : teams) {
+            teamPurseService.initializePurse(team, tournament);
+        }
+        
+        // Prepare response with current tournament settings for transparency
+        Long currentPurseAmount = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0 
+                ? tournament.getPurseAmount() : 1000000L;
+        Integer currentPlayersPerTeam = tournament.getPlayersPerTeam() != null ? tournament.getPlayersPerTeam() : 11;
+        Long currentBasePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
+        
+        return Map.of(
+            "deletedAuctionPlayers", auctionPlayers.size(),
+            "readdedApprovedPlayers", approvedPlayers.size(),
+            "teamsReset", teams.size(),
+            "appliedTournamentSettings", Map.of(
+                "purseAmount", currentPurseAmount,
+                "playersPerTeam", currentPlayersPerTeam,
+                "basePrice", currentBasePrice
+            )
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
     private AuctionPlayer findAuctionPlayer(Long id) {
         return auctionPlayerRepository.findById(id)

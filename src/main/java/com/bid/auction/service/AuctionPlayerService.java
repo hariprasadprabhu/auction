@@ -288,6 +288,12 @@ public class AuctionPlayerService {
         // Update team purse after player sale
         teamPurseService.updatePurseOnPlayerSold(team, tournament, req.getSoldPrice());
 
+        // Update linked player status to SOLD
+        if (ap.getPlayer() != null) {
+            ap.getPlayer().setStatus(PlayerStatus.SOLD);
+            playerRepository.save(ap.getPlayer());
+        }
+
         return toResponse(ap);
     }
 
@@ -306,6 +312,13 @@ public class AuctionPlayerService {
         ap.setSoldToTeam(null);
         ap.setSoldPrice(null);
         auctionPlayerRepository.save(ap);
+
+        // Update linked player status to UNSOLD
+        if (ap.getPlayer() != null) {
+            ap.getPlayer().setStatus(PlayerStatus.UNSOLD);
+            playerRepository.save(ap.getPlayer());
+        }
+
         return Map.of("id", ap.getId(), "auctionStatus", ap.getAuctionStatus().name());
     }
 
@@ -369,6 +382,12 @@ public class AuctionPlayerService {
                 ap.setSoldPrice(null);
             }
             
+            // Reset player status from SOLD/UNSOLD back to APPROVED
+            if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
+                player.setStatus(PlayerStatus.APPROVED);
+                playerRepository.save(player);
+            }
+            
             auctionPlayerRepository.save(ap);
             processedCount++;
         }
@@ -392,6 +411,15 @@ public class AuctionPlayerService {
         for (AuctionPlayer ap : auctionPlayers) {
             if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
                 teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), tournament, ap.getSoldPrice());
+            }
+        }
+        
+        // Step 1b: Reset player status from SOLD/UNSOLD back to APPROVED for all players
+        for (AuctionPlayer ap : auctionPlayers) {
+            Player player = ap.getPlayer();
+            if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
+                player.setStatus(PlayerStatus.APPROVED);
+                playerRepository.save(player);
             }
         }
         

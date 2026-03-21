@@ -112,7 +112,8 @@ public class AuctionPlayerService {
     // 2. Recalculates team's available purse
     // 3. Recalculates required players count (remaining slots)
     // 4. Recalculates maxBid and reserved count based on new remaining slots
-    // 5. Deletes the auction player record
+    // 5. KEEPS the auction player record (clears player reference) for team auction history
+    // This ensures team's purchased players remain visible in their auction/team data
     @Transactional
     public void removeFromAuctionIfPresent(Long playerId) {
         // Get all auction players linked to this player
@@ -131,11 +132,20 @@ public class AuctionPlayerService {
                 // - maxBidPerPlayer (recalculated as current purse - reserved fund)
                 // - availableForBidding (recalculated as current purse - reserved fund)
                 teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
+                
+                // IMPORTANT: Clear player reference but KEEP auction record
+                // This preserves team's auction history showing they purchased this player
+                // The auctionStatus, soldToTeam, and soldPrice remain for audit trail
+                ap.setPlayer(null);
+                auctionPlayerRepository.save(ap);
+            } else {
+                // For non-SOLD auction players, also clear player reference but keep record
+                ap.setPlayer(null);
+                auctionPlayerRepository.save(ap);
             }
         }
-        
-        // Delete all auction players linked to this player
-        auctionPlayerRepository.deleteByPlayerId(playerId);
+        // NOTE: We do NOT delete auction player records anymore
+        // This ensures team auction data remains intact even after player deletion
     }
 
     // ── Delete player with auction refunds and team purse recalculation ────────

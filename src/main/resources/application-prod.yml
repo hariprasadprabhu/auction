@@ -5,16 +5,16 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 1
+      maximum-pool-size: 25
+      minimum-idle: 8
       connection-timeout: 60000
-      idle-timeout: 600000
+      idle-timeout: 300000
       max-lifetime: 1800000
       connection-init-sql: SELECT 1
-      auto-commit: true
       connection-test-query: SELECT 1
-      # Retry configuration for database startup
-      leak-detection-threshold: 60000
+      auto-commit: true
+      leak-detection-threshold: 120000
+      validation-timeout: 5000
   
   # Retry configuration for EntityManager initialization
   jpa:

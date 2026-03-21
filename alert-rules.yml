@@ -1,0 +1,182 @@
+# Prometheus Alert Rules for HikariCP Connection Pool
+#
+# Save this as alert-rules.yml and include in prometheus.yml
+#
+# These rules monitor connection pool health and trigger alerts
+# when issues are detected.
+
+groups:
+  - name: hikaricp_alerts
+    interval: 1m
+    rules:
+      # Alert when pool utilization exceeds 80%
+      - alert: HighConnectionPoolUtilization
+        expr: |
+          (hikaricp_connections_active / hikaricp_connections_max) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High connection pool utilization detected"
+          description: "Connection pool utilization is above 80% on {{ $labels.instance }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # Alert when pool utilization exceeds 95%
+      - alert: CriticalConnectionPoolUtilization
+        expr: |
+          (hikaricp_connections_active / hikaricp_connections_max) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "CRITICAL: Connection pool near exhaustion"
+          description: "Connection pool utilization is above 95% on {{ $labels.instance }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # Alert when idle connections drop below minimum
+      - alert: LowIdleConnections
+        expr: |
+          hikaricp_connections_idle < hikaricp_connections_min
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Idle connections below minimum threshold"
+          description: "Idle connections are below minimum setting on {{ $labels.instance }}"
+          idle: "{{ $value }}"
+
+      # Alert on high connection timeout rate
+      - alert: HighConnectionTimeoutRate
+        expr: |
+          rate(hikaricp_connections_timeout_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "High connection timeout rate detected"
+          description: "Connection timeouts occurring at {{ $value | humanize }}/sec on {{ $labels.instance }}"
+
+      # Alert on potential connection leak
+      - alert: PotentialConnectionLeak
+        expr: |
+          hikaricp_connections_active > (hikaricp_connections_max * 0.9) 
+          and on() (time() - ALERTS_FOR_STATE_SINCE) > 600
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Potential connection leak detected"
+          description: "Connections held for extended period on {{ $labels.instance }}"
+          active_connections: "{{ $value }}"
+
+      # Alert when connection creation fails
+      - alert: ConnectionCreationFailure
+        expr: |
+          rate(hikaricp_connections_creation_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Connection creation failures detected"
+          description: "Failed to create new database connections on {{ $labels.instance }}"
+
+      # Alert on database connectivity issues
+      - alert: DatabaseConnectivityIssue
+        expr: |
+          up{job="auction-dev"} == 0 or up{job="auction-prod"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connectivity issue detected"
+          description: "Cannot connect to application instance {{ $labels.instance }}"
+
+      # Alert when average connection lifetime is short (possible recycling issues)
+      - alert: HighConnectionRecycleRate
+        expr: |
+          rate(hikaricp_connections_max_lifetime_exceeded_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High connection recycle rate"
+          description: "Many connections being recycled due to max lifetime on {{ $labels.instance }}"
+
+  - name: application_alerts
+    interval: 1m
+    rules:
+      # Alert on high response time
+      - alert: HighApplicationResponseTime
+        expr: |
+          histogram_quantile(0.95, http_server_requests_seconds_bucket{endpoint="/api/health/status"}) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High application response time detected"
+          description: "95th percentile response time is above 1 second on {{ $labels.instance }}"
+          value: "{{ $value | humanizeDuration }}"
+
+      # Alert on application error rate
+      - alert: HighErrorRate
+        expr: |
+          rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate above 5% on {{ $labels.instance }}"
+          error_rate: "{{ $value | humanizePercentage }}"
+
+      # Alert on application restart (high number of connections created recently)
+      - alert: ApplicationRestarted
+        expr: |
+          time() - process_start_time_seconds < 300
+        for: 1m
+        labels:
+          severity: info
+          component: application
+        annotations:
+          summary: "Application recently started"
+          description: "Application on {{ $labels.instance }} was started recently"
+
+  - name: database_alerts
+    interval: 1m
+    rules:
+      # Alert on PostgreSQL connection limit exceeded
+      - alert: PostgreSQLMaxConnectionsExceeded
+        expr: |
+          pg_stat_activity_count > (pg_settings_max_connections * 0.9)
+        for: 5m
+        labels:
+          severity: critical
+          component: postgres
+        annotations:
+          summary: "PostgreSQL max connections limit nearly reached"
+          description: "PostgreSQL connections approaching maximum limit on {{ $labels.instance }}"
+          current: "{{ $value }}"
+
+      # Alert on high query execution time
+      - alert: SlowQueryDetected
+        expr: |
+          pg_stat_statements_mean_exec_time_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: postgres
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query execution time above 5 seconds on {{ $labels.instance }}"
+          avg_time: "{{ $value | humanizeDuration }}"
+

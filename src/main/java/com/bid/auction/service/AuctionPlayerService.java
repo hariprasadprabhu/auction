@@ -383,17 +383,10 @@ public class AuctionPlayerService {
             // Get the linked registered player to check status
             Player player = ap.getPlayer();
             
-            if (player != null && player.getStatus() == PlayerStatus.APPROVED) {
-                // If approved, set available for auction (UPCOMING status)
-                ap.setAuctionStatus(AuctionStatus.UPCOMING);
-                ap.setSoldToTeam(null);
-                ap.setSoldPrice(null);
-            } else {
-                // If not approved, remove from available auction (set to UNSOLD)
-                ap.setAuctionStatus(AuctionStatus.UNSOLD);
-                ap.setSoldToTeam(null);
-                ap.setSoldPrice(null);
-            }
+            // Always set auctionStatus to UPCOMING and clear sold data
+            ap.setAuctionStatus(AuctionStatus.UPCOMING);
+            ap.setSoldToTeam(null);
+            ap.setSoldPrice(null);
             
             // Reset player status from SOLD/UNSOLD back to APPROVED
             // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)

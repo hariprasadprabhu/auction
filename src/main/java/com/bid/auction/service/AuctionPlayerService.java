@@ -106,16 +106,30 @@ public class AuctionPlayerService {
         auctionPlayerRepository.delete(ap);
     }
 
-    // ── Remove from auction pool (called internally when a player is rejected) ──
+    // ── Remove from auction pool (called internally when a player is rejected or deleted) ──
+    // When a SOLD player is deleted, this method:
+    // 1. Refunds the sold price back to the team's purse
+    // 2. Recalculates team's available purse
+    // 3. Recalculates required players count (remaining slots)
+    // 4. Recalculates maxBid and reserved count based on new remaining slots
+    // 5. Deletes the auction player record
     @Transactional
     public void removeFromAuctionIfPresent(Long playerId) {
         // Get all auction players linked to this player
         List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
         
-        // For each linked auction player, if it's sold to a team, refund the team
+        // For each linked auction player, if it's sold to a team, refund the team and recalculate values
         for (AuctionPlayer ap : linkedAuctionPlayers) {
             if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
-                // Refund the team by updating their purse
+                // Player was SOLD to a team - refund and recalculate all team values
+                // This updates:
+                // - currentPurse (adds back the sold price)
+                // - purseUsed (deducts the sold price)
+                // - playersBought (decrements by 1)
+                // - remainingSlots (increments by 1)
+                // - reservedFund (recalculated based on new remainingSlots)
+                // - maxBidPerPlayer (recalculated as current purse - reserved fund)
+                // - availableForBidding (recalculated as current purse - reserved fund)
                 teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
             }
         }

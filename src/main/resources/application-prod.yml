@@ -5,8 +5,8 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 25
-      minimum-idle: 8
+      maximum-pool-size: 40
+      minimum-idle: 10
       connection-timeout: 60000
       idle-timeout: 300000
       max-lifetime: 1800000
@@ -27,11 +27,15 @@ spring:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
         connection:
-          # Retry on database startup issues
           provider_disables_autocommit: false
         jdbc:
           lob:
             non_contextual_creation: true
+          batch_size: 20
+          fetch_size: 50
+        session:
+          events:
+            log: false
 
 app:
   jwt:

@@ -99,7 +99,7 @@ public class PlayerService {
     //    - Reserved fund (recalculated based on new remainingSlots)
     // 3. Delete all linked auction player records
     // 4. Delete the player record
-    @Transactional
+    @Transactional(timeout = 30)
     public void delete(Long id, User user) {
         Player player = findPlayer(id);
         Long tournamentId = player.getTournament().getId();
@@ -136,7 +136,7 @@ public class PlayerService {
     }
 
     // ── Approve All / Reject All ──────────────────────────────────────────────
-    @Transactional
+    @Transactional(timeout = 60)
     public Map<String, Object> approveAll(Long tournamentId, List<Long> playerIds, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
         Tournament tournament = tournamentService.findById(tournamentId);
@@ -167,7 +167,7 @@ public class PlayerService {
         );
     }
 
-    @Transactional
+    @Transactional(timeout = 60)
     public Map<String, Object> rejectAll(Long tournamentId, List<Long> playerIds, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
         Tournament tournament = tournamentService.findById(tournamentId);

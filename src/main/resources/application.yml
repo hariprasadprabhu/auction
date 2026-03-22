@@ -19,14 +19,16 @@ spring:
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: 30
+      minimum-idle: 8
       connection-timeout: 60000
       idle-timeout: 300000
       max-lifetime: 1800000
       connection-test-query: SELECT 1
       leak-detection-threshold: 120000
       auto-commit: true
+      validation-timeout: 5000
+      connection-init-sql: SELECT 1
 
   jpa:
     hibernate:
@@ -39,9 +41,15 @@ spring:
           lob:
             non_contextual_creation: true
           batch_size: 20
+          fetch_size: 50
         order_inserts: true
         order_updates: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        connection:
+          provider_disables_autocommit: false
+        session:
+          events:
+            log: false
 
   servlet:
     multipart:
@@ -62,6 +70,8 @@ logging:
     root: ${LOG_LEVEL:INFO}
     com.bid.auction: ${COM_BID_AUCTION_LOG_LEVEL:DEBUG}
     org.springframework.security: INFO
+    com.zaxxer.hikari: DEBUG
+    org.hibernate.SQL: DEBUG
 
 # Actuator endpoints
 management:

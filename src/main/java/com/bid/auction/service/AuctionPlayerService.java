@@ -114,7 +114,7 @@ public class AuctionPlayerService {
     // 4. Recalculates maxBid and reserved count based on new remaining slots
     // 5. KEEPS the auction player record (clears player reference) for team auction history
     // This ensures team's purchased players remain visible in their auction/team data
-    @Transactional
+    @Transactional(timeout = 30)
     public void removeFromAuctionIfPresent(Long playerId) {
         // Get all auction players linked to this player
         List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);

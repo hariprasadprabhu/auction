@@ -83,7 +83,7 @@ public class TeamPurseService {
         
         return teamPurseRepository.save(tp);
     }
-    @Transactional
+    @Transactional(timeout = 45)
     public void recalculateAllTeamPurses(Tournament tournament) {
         List<TeamPurse> purses = teamPurseRepository.findByTournamentId(tournament.getId());
         // Tournament purse IS the individual team purse (not divided)

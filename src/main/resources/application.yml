@@ -5,6 +5,10 @@ server:
   compression:
     enabled: true
     min-response-size: 1024
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 10
+    accept-count: 100
 
 spring:
   application:
@@ -19,7 +23,8 @@ spring:
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 30
+      # Connection pool sizing for better resilience
+      maximum-pool-size: 25
       minimum-idle: 8
       connection-timeout: 60000
       idle-timeout: 300000
@@ -29,6 +34,11 @@ spring:
       auto-commit: true
       validation-timeout: 5000
       connection-init-sql: SELECT 1
+      # Additional resilience settings
+      validation-interval: 30000
+      cache-prep-stmts: true
+      prep-stmt-cache-size: 250
+      prep-stmt-cache-sql-limit: 2048
 
   jpa:
     hibernate:
@@ -36,12 +46,13 @@ spring:
     show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         jdbc:
           lob:
             non_contextual_creation: true
           batch_size: 20
           fetch_size: 50
+          batch_versioned_data: true
         order_inserts: true
         order_updates: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -50,6 +61,8 @@ spring:
         session:
           events:
             log: false
+        query:
+          in_clause_parameter_padding: true
 
   servlet:
     multipart:
@@ -65,13 +78,18 @@ app:
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:4200,http://localhost:3000}
 
+  db:
+    # Request queue configuration
+    request-queue-size: 1000
+    request-queue-timeout-seconds: 30
+
 logging:
   level:
     root: ${LOG_LEVEL:INFO}
-    com.bid.auction: ${COM_BID_AUCTION_LOG_LEVEL:DEBUG}
+    com.bid.auction: ${COM_BID_AUCTION_LOG_LEVEL:INFO}
     org.springframework.security: INFO
     com.zaxxer.hikari: DEBUG
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
 
 # Actuator endpoints
 management:
@@ -82,4 +100,6 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+
 

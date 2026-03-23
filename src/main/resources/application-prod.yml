@@ -1,3 +1,9 @@
+server:
+  tomcat:
+    max-threads: 300
+    min-spare-threads: 20
+    accept-count: 150
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -5,8 +11,9 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
+      # Production-grade pool sizing
       maximum-pool-size: 40
-      minimum-idle: 10
+      minimum-idle: 12
       connection-timeout: 60000
       idle-timeout: 300000
       max-lifetime: 1800000
@@ -15,6 +22,13 @@ spring:
       auto-commit: true
       leak-detection-threshold: 120000
       validation-timeout: 5000
+      # Performance optimizations
+      cache-prep-stmts: true
+      prep-stmt-cache-size: 500
+      prep-stmt-cache-sql-limit: 2048
+      validation-interval: 15000
+      # Connection recycling
+      connection-init-sql: SELECT 1
   
   # Retry configuration for EntityManager initialization
   jpa:
@@ -31,8 +45,11 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
-          batch_size: 20
-          fetch_size: 50
+          batch_size: 30
+          fetch_size: 100
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
         session:
           events:
             log: false
@@ -45,10 +62,15 @@ app:
   cors:
     allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:3000}"
 
+  db:
+    request-queue-size: 2000
+    request-queue-timeout-seconds: 30
+
 logging:
   level:
     com.bid.auction: INFO
     org.springframework.security: WARN
+    com.zaxxer.hikari: WARN
 
 # Actuator endpoints
 management:
@@ -59,4 +81,6 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+
 

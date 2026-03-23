@@ -27,9 +27,7 @@ spring:
       prep-stmt-cache-size: 500
       prep-stmt-cache-sql-limit: 2048
       validation-interval: 15000
-      # Connection recycling
-      connection-init-sql: SELECT 1
-  
+
   # Retry configuration for EntityManager initialization
   jpa:
     hibernate:

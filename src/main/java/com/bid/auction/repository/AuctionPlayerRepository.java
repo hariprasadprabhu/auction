@@ -11,22 +11,30 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Long> {
-    List<AuctionPlayer> findByTournamentIdOrderBySortOrder(Long tournamentId);
-    List<AuctionPlayer> findByTournamentId(Long tournamentId);
+    
+    // Eager fetch soldToTeam to prevent lazy loading errors
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId ORDER BY ap.sortOrder ASC")
+    List<AuctionPlayer> findByTournamentIdOrderBySortOrder(@Param("tournamentId") Long tournamentId);
+    
+    // Eager fetch soldToTeam to prevent lazy loading errors
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId")
+    List<AuctionPlayer> findByTournamentId(@Param("tournamentId") Long tournamentId);
+    
     List<AuctionPlayer> findBySoldToTeamId(Long teamId);
-    List<AuctionPlayer> findByTournamentIdAndAuctionStatus(Long tournamentId, AuctionStatus status);
+    
+    @Query("SELECT ap FROM AuctionPlayer ap LEFT JOIN FETCH ap.soldToTeam WHERE ap.tournament.id = :tournamentId AND ap.auctionStatus = :status")
+    List<AuctionPlayer> findByTournamentIdAndAuctionStatus(@Param("tournamentId") Long tournamentId, @Param("status") AuctionStatus status);
+    
     long countBySoldToTeamId(Long teamId);
     boolean existsByPlayerIdAndTournamentId(Long playerId, Long tournamentId);
 
     /**
-     * Bulk delete by player id — using @Modifying/@Query avoids the Hibernate
-     * "collection with orphanRemoval was no longer referenced" error that can
-     * occur with a derived-delete when the parent Tournament is already in the
-     * session and its auctionPlayers collection carries orphanRemoval=true.
+     * Delete all auction players linked to a specific player.
+     * Using custom query to handle null player references properly.
      */
     @Modifying(clearAutomatically = true)
     @Transactional
-    @Query("DELETE FROM AuctionPlayer ap WHERE ap.player.id = :playerId")
+    @Query("DELETE FROM AuctionPlayer ap WHERE ap.player IS NOT NULL AND ap.player.id = :playerId")
     void deleteByPlayerId(@Param("playerId") Long playerId);
 
     @Modifying(clearAutomatically = true)

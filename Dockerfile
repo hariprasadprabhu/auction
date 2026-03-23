@@ -32,7 +32,8 @@ COPY --from=builder /app/target/auction-*.jar app.jar
 EXPOSE 8080
 
 # Set JVM options for optimal performance in containers
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+# Increased heap from 512m to 1024m to prevent OutOfMemoryError with HikariCP connection pool
+ENV JAVA_OPTS="-Xmx1024m -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+ParallelRefProcEnabled -XX:InitiatingHeapOccupancyPercent=35"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

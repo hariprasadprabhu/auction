@@ -1,6 +1,7 @@
 package com.bid.auction.controller;
 
 import com.bid.auction.dto.request.AuctionPlayerRequest;
+import com.bid.auction.dto.request.ResetAuctionPlayersRequest;
 import com.bid.auction.dto.request.SellPlayerRequest;
 import com.bid.auction.dto.response.AuctionPlayerResponse;
 import com.bid.auction.entity.User;
@@ -47,6 +48,22 @@ public class AuctionPlayerController {
     public ResponseEntity<Map<String, Object>> requeueUnsold(
             @PathVariable Long tournamentId, Authentication auth) {
         return ResponseEntity.ok(auctionPlayerService.requeueUnsold(tournamentId, currentUser(auth)));
+    }
+
+    @PostMapping("/tournaments/{tournamentId}/auction-players/reset")
+    public ResponseEntity<Map<String, Object>> resetAuctionPlayers(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody ResetAuctionPlayersRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(auctionPlayerService.resetAuctionPlayers(
+                tournamentId, request.getPlayerIds(), currentUser(auth)));
+    }
+
+    @PostMapping("/tournaments/{tournamentId}/auction/reset-entire")
+    public ResponseEntity<Map<String, Object>> resetEntireAuction(
+            @PathVariable Long tournamentId,
+            Authentication auth) {
+        return ResponseEntity.ok(auctionPlayerService.resetEntireAuction(tournamentId, currentUser(auth)));
     }
 
     // ── Direct auction-player endpoints ───────────────────────────────────────
@@ -101,4 +118,3 @@ public class AuctionPlayerController {
         return authService.getUserByEmail(auth.getName());
     }
 }
-

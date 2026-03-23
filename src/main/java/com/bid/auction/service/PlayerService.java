@@ -90,16 +90,25 @@ public class PlayerService {
     }
 
     // ── Delete (auth) ─────────────────────────────────────────────────────────
-    @Transactional
+    // When a SOLD player is deleted:
+    // 1. Refund the sold price back to the team's purse
+    // 2. Recalculate all team values:
+    //    - Available purse (currentPurse increases)
+    //    - Required players count (remainingSlots increases)
+    //    - Max bid per player (recalculated based on new available purse)
+    //    - Reserved fund (recalculated based on new remainingSlots)
+    // 3. Delete all linked auction player records
+    // 4. Delete the player record
+    @Transactional(timeout = 30)
     public void delete(Long id, User user) {
         Player player = findPlayer(id);
         Long tournamentId = player.getTournament().getId();
         tournamentService.findAndVerifyOwner(tournamentId, user);
         
         // Handle auction players linked to this player:
-        // - If SOLD, refund the team and update team purse
+        // - If player status is SOLD, refund the team and recalculate all team values
         // - Delete all linked auction player records
-        auctionPlayerService.deletePlayerWithAuctionRefunds(id, tournamentId);
+        auctionPlayerService.deletePlayerWithAuctionRefunds(id);
         
         // Delete the player
         playerRepository.delete(player);
@@ -127,7 +136,7 @@ public class PlayerService {
     }
 
     // ── Approve All / Reject All ──────────────────────────────────────────────
-    @Transactional
+    @Transactional(timeout = 60)
     public Map<String, Object> approveAll(Long tournamentId, List<Long> playerIds, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
         Tournament tournament = tournamentService.findById(tournamentId);
@@ -158,7 +167,7 @@ public class PlayerService {
         );
     }
 
-    @Transactional
+    @Transactional(timeout = 60)
     public Map<String, Object> rejectAll(Long tournamentId, List<Long> playerIds, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
         Tournament tournament = tournamentService.findById(tournamentId);

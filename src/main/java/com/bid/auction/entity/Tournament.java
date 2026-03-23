@@ -70,6 +70,11 @@ public class Tournament {
     @ToString.Exclude
     private List<IncrementRule> incrementRules = new ArrayList<>();
 
+    @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    private List<TeamPurse> teamPurses = new ArrayList<>();
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

@@ -43,6 +43,10 @@ public class Team {
     @ToString.Exclude
     private List<AuctionPlayer> auctionPlayers;
 
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<TeamPurse> teamPurses;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

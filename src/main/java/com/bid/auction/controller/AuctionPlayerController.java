@@ -10,7 +10,6 @@ import com.bid.auction.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -34,11 +33,10 @@ public class AuctionPlayerController {
                 auctionPlayerService.getAllByTournament(tournamentId, currentUser(auth)));
     }
 
-    @PostMapping(value = "/tournaments/{tournamentId}/auction-players",
-                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/tournaments/{tournamentId}/auction-players")
     public ResponseEntity<AuctionPlayerResponse> create(
             @PathVariable Long tournamentId,
-            @Valid @ModelAttribute AuctionPlayerRequest request,
+            @Valid @RequestBody AuctionPlayerRequest request,
             Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(auctionPlayerService.create(tournamentId, request, currentUser(auth)));
@@ -74,11 +72,10 @@ public class AuctionPlayerController {
         return ResponseEntity.ok(auctionPlayerService.getById(id, currentUser(auth)));
     }
 
-    @PutMapping(value = "/auction-players/{id}",
-                consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/auction-players/{id}")
     public ResponseEntity<AuctionPlayerResponse> update(
             @PathVariable Long id,
-            @Valid @ModelAttribute AuctionPlayerRequest request,
+            @Valid @RequestBody AuctionPlayerRequest request,
             Authentication auth) {
         return ResponseEntity.ok(auctionPlayerService.update(id, request, currentUser(auth)));
     }
@@ -103,16 +100,6 @@ public class AuctionPlayerController {
         return ResponseEntity.ok(auctionPlayerService.markUnsold(id, currentUser(auth)));
     }
 
-    // ── Public photo ───────────────────────────────────────────────────────────
-
-    @GetMapping("/auction-players/{id}/photo")
-    public ResponseEntity<byte[]> getPhoto(@PathVariable Long id) {
-        byte[] photo = auctionPlayerService.getPhoto(id);
-        String contentType = auctionPlayerService.getPhotoContentType(id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(photo);
-    }
 
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());

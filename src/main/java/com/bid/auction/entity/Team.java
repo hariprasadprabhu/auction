@@ -30,9 +30,8 @@ public class Team {
 
     private String mobileNumber;
 
-    @Column(name = "logo", columnDefinition = "bytea")
-    private byte[] logo;
-    private String logoContentType;
+    @Column(name = "logo")
+    private String logo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tournament_id", nullable = false)

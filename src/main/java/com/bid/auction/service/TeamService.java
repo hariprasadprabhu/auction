@@ -11,9 +11,7 @@ import com.bid.auction.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -56,10 +54,10 @@ public class TeamService {
                 .name(req.getName())
                 .ownerName(req.getOwnerName())
                 .mobileNumber(req.getMobileNumber())
+                .logo(req.getLogo())
                 .tournament(tournament)
                 .build();
 
-        setLogo(team, req.getLogo());
         Team savedTeam = teamRepository.save(team);
 
         // Initialize team purse when team is created
@@ -77,7 +75,7 @@ public class TeamService {
         team.setOwnerName(req.getOwnerName());
         team.setMobileNumber(req.getMobileNumber());
         if (req.getLogo() != null && !req.getLogo().isEmpty()) {
-            setLogo(team, req.getLogo());
+            team.setLogo(req.getLogo());
         }
 
         return toResponse(teamRepository.save(team));
@@ -101,33 +99,10 @@ public class TeamService {
         teamRepository.delete(team);
     }
 
-    // ── Logo bytes ────────────────────────────────────────────────────────────
-    public byte[] getLogo(Long id) {
-        Team team = findTeam(id);
-        if (team.getLogo() == null) throw new ResourceNotFoundException("Logo not found for team: " + id);
-        return team.getLogo();
-    }
-
-    public String getLogoContentType(Long id) {
-        Team team = findTeam(id);
-        return team.getLogoContentType() != null ? team.getLogoContentType() : "image/jpeg";
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
     private Team findTeam(Long id) {
         return teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found: " + id));
-    }
-
-    private void setLogo(Team team, MultipartFile file) {
-        if (file != null && !file.isEmpty()) {
-            try {
-                team.setLogo(file.getBytes());
-                team.setLogoContentType(file.getContentType());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read logo file");
-            }
-        }
     }
 
     public TeamResponse toResponse(Team team) {
@@ -138,7 +113,7 @@ public class TeamService {
                 .ownerName(team.getOwnerName())
                 .mobileNumber(team.getMobileNumber())
                 .tournamentId(team.getTournament().getId())
-                .logoUrl(team.getLogo() != null ? "/teams/" + team.getId() + "/logo" : null)
+                .logoUrl(team.getLogo())
                 .build();
     }
 }

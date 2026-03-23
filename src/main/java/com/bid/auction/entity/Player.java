@@ -32,13 +32,11 @@ public class Player {
     @Column(nullable = false)
     private String role;
 
-    @Column(name = "photo", columnDefinition = "bytea")
-    private byte[] photo;
-    private String photoContentType;
+    @Column(name = "photo")
+    private String photo;
 
-    @Column(name = "payment_proof", columnDefinition = "bytea")
-    private byte[] paymentProof;
-    private String paymentProofContentType;
+    @Column(name = "payment_proof")
+    private String paymentProof;
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "varchar(255) check (status in ('PENDING', 'APPROVED', 'REJECTED', 'SOLD', 'UNSOLD'))")

@@ -18,9 +18,7 @@ import com.bid.auction.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -64,12 +62,12 @@ public class AuctionPlayerService {
                 .bowlingStyle(req.getBowlingStyle())
                 .role(req.getRole())
                 .basePrice(req.getBasePrice())
+                .photo(req.getPhoto())
                 .auctionStatus(AuctionStatus.UPCOMING)
                 .tournament(tournament)
                 .sortOrder(nextOrder)
                 .build();
 
-        setPhoto(ap, req.getPhoto());
         return toResponse(auctionPlayerRepository.save(ap));
     }
 
@@ -87,7 +85,7 @@ public class AuctionPlayerService {
         ap.setBowlingStyle(req.getBowlingStyle());
         ap.setRole(req.getRole());
         ap.setBasePrice(req.getBasePrice());
-        if (req.getPhoto() != null && !req.getPhoto().isEmpty()) setPhoto(ap, req.getPhoto());
+        if (req.getPhoto() != null && !req.getPhoto().isEmpty()) ap.setPhoto(req.getPhoto());
 
         return toResponse(auctionPlayerRepository.save(ap));
     }
@@ -167,7 +165,6 @@ public class AuctionPlayerService {
             ap.setRole(player.getRole());
             if (player.getPhoto() != null) {
                 ap.setPhoto(player.getPhoto());
-                ap.setPhotoContentType(player.getPhotoContentType());
             }
         }
         auctionPlayerRepository.saveAll(linked);
@@ -196,7 +193,6 @@ public class AuctionPlayerService {
                 .role(player.getRole())
                 .basePrice(tournament.getBasePrice())   // default from tournament; admin can update later
                 .photo(player.getPhoto())
-                .photoContentType(player.getPhotoContentType())
                 .auctionStatus(AuctionStatus.UPCOMING)
                 .tournament(tournament)
                 .sortOrder(nextOrder)
@@ -243,7 +239,6 @@ public class AuctionPlayerService {
                 .bowlingStyle(req.getBowlingStyle())
                 .basePrice(req.getBasePrice())
                 .photo(player.getPhoto())
-                .photoContentType(player.getPhotoContentType())
                 .auctionStatus(AuctionStatus.UPCOMING)
                 .tournament(tournament)
                 .sortOrder(nextOrder)
@@ -346,19 +341,6 @@ public class AuctionPlayerService {
         return Map.of("requeuedCount", unsold.size());
     }
 
-    // ── Photo bytes ───────────────────────────────────────────────────────────
-    public byte[] getPhoto(Long id) {
-        AuctionPlayer ap = findAuctionPlayer(id);
-        if (ap.getPhoto() == null)
-            throw new ResourceNotFoundException("Photo not found for auction player: " + id);
-        return ap.getPhoto();
-    }
-
-    public String getPhotoContentType(Long id) {
-        AuctionPlayer ap = findAuctionPlayer(id);
-        return ap.getPhotoContentType() != null ? ap.getPhotoContentType() : "image/jpeg";
-    }
-
     // ── Reset Auction Players ─────────────────────────────────────────────────
     @Transactional
     public Map<String, Object> resetAuctionPlayers(Long tournamentId, List<Long> playerIds, User user) {
@@ -450,7 +432,6 @@ public class AuctionPlayerService {
                     .role(player.getRole())
                     .basePrice(tournament.getBasePrice())  // Uses current tournament base price
                     .photo(player.getPhoto())
-                    .photoContentType(player.getPhotoContentType())
                     .auctionStatus(AuctionStatus.UPCOMING)
                     .tournament(tournament)
                     .sortOrder(nextOrder++)
@@ -492,17 +473,6 @@ public class AuctionPlayerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Auction player not found: " + id));
     }
 
-    private void setPhoto(AuctionPlayer ap, MultipartFile file) {
-        if (file != null && !file.isEmpty()) {
-            try {
-                ap.setPhoto(file.getBytes());
-                ap.setPhotoContentType(file.getContentType());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read photo file");
-            }
-        }
-    }
-
     public AuctionPlayerResponse toResponse(AuctionPlayer ap) {
         return AuctionPlayerResponse.builder()
                 .id(ap.getId())
@@ -522,7 +492,7 @@ public class AuctionPlayerService {
                 .soldPrice(ap.getSoldPrice())
                 .tournamentId(ap.getTournament().getId())
                 .sortOrder(ap.getSortOrder())
-                .photoUrl(ap.getPhoto() != null ? "/api/auction-players/" + ap.getId() + "/photo" : null)
+                .photoUrl(ap.getPhoto())
                 .build();
     }
 }

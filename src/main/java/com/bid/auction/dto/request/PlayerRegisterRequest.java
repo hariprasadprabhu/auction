@@ -3,7 +3,6 @@ package com.bid.auction.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -21,7 +20,7 @@ public class PlayerRegisterRequest {
     @NotBlank(message = "Role is required")
     private String role;
 
-    private MultipartFile photo;
-    private MultipartFile paymentProof;
+    private String photo;
+    private String paymentProof;
 }
 

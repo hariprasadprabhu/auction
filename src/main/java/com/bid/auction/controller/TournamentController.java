@@ -8,7 +8,6 @@ import com.bid.auction.service.TournamentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -42,18 +41,18 @@ public class TournamentController {
         return ResponseEntity.ok(tournamentService.getPublicDetails(id));
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     public ResponseEntity<TournamentResponse> create(
-            @Valid @ModelAttribute TournamentRequest request,
+            @Valid @RequestBody TournamentRequest request,
             Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(tournamentService.create(request, currentUser(auth)));
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{id}")
     public ResponseEntity<TournamentResponse> update(
             @PathVariable Long id,
-            @Valid @ModelAttribute TournamentRequest request,
+            @Valid @RequestBody TournamentRequest request,
             Authentication auth) {
         return ResponseEntity.ok(tournamentService.update(id, request, currentUser(auth)));
     }
@@ -64,14 +63,6 @@ public class TournamentController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/logo")
-    public ResponseEntity<byte[]> getLogo(@PathVariable Long id) {
-        byte[] logo = tournamentService.getLogo(id);
-        String contentType = tournamentService.getLogoContentType(id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(logo);
-    }
 
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());

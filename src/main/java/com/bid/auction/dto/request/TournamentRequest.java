@@ -3,7 +3,6 @@ package com.bid.auction.dto.request;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -46,6 +45,6 @@ public class TournamentRequest {
     // UPCOMING | ONGOING | COMPLETED
     private String status;
 
-    private MultipartFile logo;
+    private String logo;
 }
 

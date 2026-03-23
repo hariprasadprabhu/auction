@@ -12,9 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -60,10 +58,10 @@ public class TournamentService {
                 .basePrice(req.getBasePrice())
                 .initialIncrement(req.getInitialIncrement())
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
+                .logo(req.getLogo())
                 .createdBy(user)
                 .build();
 
-        setLogo(t, req.getLogo());
         return toResponse(tournamentRepository.save(t));
     }
 
@@ -84,7 +82,7 @@ public class TournamentService {
             t.setStatus(parseStatus(req.getStatus(), t.getStatus()));
         }
         if (req.getLogo() != null && !req.getLogo().isEmpty()) {
-            setLogo(t, req.getLogo());
+            t.setLogo(req.getLogo());
         }
 
         Tournament updatedTournament = tournamentRepository.save(t);
@@ -107,20 +105,6 @@ public class TournamentService {
         tournamentRepository.delete(t);
     }
 
-    // ── Logo bytes ────────────────────────────────────────────────────────────
-    public byte[] getLogo(Long id) {
-        Tournament t = tournamentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id));
-        if (t.getLogo() == null) throw new ResourceNotFoundException("Logo not found for tournament: " + id);
-        return t.getLogo();
-    }
-
-    public String getLogoContentType(Long id) {
-        Tournament t = tournamentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id));
-        return t.getLogoContentType() != null ? t.getLogoContentType() : "image/jpeg";
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
     public Tournament findAndVerifyOwner(Long id, User user) {
         Tournament t = tournamentRepository.findById(id)
@@ -135,17 +119,6 @@ public class TournamentService {
     public Tournament findById(Long id) {
         return tournamentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id));
-    }
-
-    private void setLogo(Tournament t, MultipartFile file) {
-        if (file != null && !file.isEmpty()) {
-            try {
-                t.setLogo(file.getBytes());
-                t.setLogoContentType(file.getContentType());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read logo file");
-            }
-        }
     }
 
     private TournamentStatus parseStatus(String statusStr, TournamentStatus defaultVal) {
@@ -171,7 +144,7 @@ public class TournamentService {
                 .playersPerTeam(t.getPlayersPerTeam())
                 .basePrice(t.getBasePrice())
                 .initialIncrement(t.getInitialIncrement())
-                .logoUrl(t.getLogo() != null ? "/tournaments/" + t.getId() + "/logo" : null)
+                .logoUrl(t.getLogo())
                 .build();
     }
 }

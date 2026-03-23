@@ -42,9 +42,8 @@ public class Tournament {
     private Long basePrice;
     private Long initialIncrement;
 
-    @Column(name = "logo", columnDefinition = "bytea")
-    private byte[] logo;
-    private String logoContentType;
+    @Column(name = "logo")
+    private String logo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id", nullable = false)

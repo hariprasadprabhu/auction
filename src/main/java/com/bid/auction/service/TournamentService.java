@@ -59,6 +59,7 @@ public class TournamentService {
                 .initialIncrement(req.getInitialIncrement())
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
                 .logo(req.getLogo())
+                .paymentProofRequired(req.getPaymentProofRequired())
                 .createdBy(user)
                 .build();
 
@@ -83,6 +84,9 @@ public class TournamentService {
         }
         if (req.getLogo() != null && !req.getLogo().isEmpty()) {
             t.setLogo(req.getLogo());
+        }
+        if (req.getPaymentProofRequired() != null) {
+            t.setPaymentProofRequired(req.getPaymentProofRequired());
         }
 
         Tournament updatedTournament = tournamentRepository.save(t);
@@ -145,6 +149,7 @@ public class TournamentService {
                 .basePrice(t.getBasePrice())
                 .initialIncrement(t.getInitialIncrement())
                 .logoUrl(t.getLogo())
+                .paymentProofRequired(t.getPaymentProofRequired())
                 .build();
     }
 }

@@ -46,5 +46,7 @@ public class TournamentRequest {
     private String status;
 
     private String logo;
+
+    private Boolean paymentProofRequired;
 }
 

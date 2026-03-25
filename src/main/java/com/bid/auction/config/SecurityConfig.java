@@ -62,6 +62,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/teams/*/logo", "/api/teams/*/logo").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auction-players/*/photo", "/api/auction-players/*/photo").permitAll()
                         .requestMatchers(HttpMethod.GET, "/players/*/photo", "/api/players/*/photo").permitAll()
+                        // Public tournament data endpoints (owner-view, auction-players, team-purses)
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/owner-view", "/api/tournaments/*/owner-view").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/auction-players", "/api/tournaments/*/auction-players").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tournaments/*/team-purses", "/api/tournaments/*/team-purses").permitAll()
                         // Everything else requires auth
                         .anyRequest().authenticated()
                 )

@@ -23,7 +23,10 @@ public class OwnerViewController {
     @GetMapping("/{tournamentId}/owner-view")
     public ResponseEntity<OwnerViewResponse> getOwnerView(
             @PathVariable Long tournamentId, Authentication auth) {
-        User user = authService.getUserByEmail(auth.getName());
+        User user = null;
+        if (auth != null && auth.isAuthenticated()) {
+            user = authService.getUserByEmail(auth.getName());
+        }
         return ResponseEntity.ok(ownerViewService.getOwnerView(tournamentId, user));
     }
 }

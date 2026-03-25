@@ -34,7 +34,7 @@ public class AuctionPlayerService {
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<AuctionPlayerResponse> getAllByTournament(Long tournamentId, User user) {
-        tournamentService.findAndVerifyOwner(tournamentId, user);
+        // For public access, skip ownership verification
         return auctionPlayerRepository.findByTournamentIdOrderBySortOrder(tournamentId)
                 .stream().map(this::toResponse).toList();
     }

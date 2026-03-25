@@ -21,7 +21,6 @@ public class TeamPurseController {
     @GetMapping("/tournaments/{tournamentId}/team-purses")
     @Operation(summary = "Get all team purses for a tournament",
             description = "Returns financial details for all teams in a tournament")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<List<TeamPurseResponse>> getAllTeamPurses(
             @Parameter(description = "Tournament ID") @PathVariable Long tournamentId) {
         List<TeamPurseResponse> purses = teamPurseService.getAllTeamPurses(tournamentId);

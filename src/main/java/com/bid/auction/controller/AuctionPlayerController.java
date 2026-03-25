@@ -29,8 +29,12 @@ public class AuctionPlayerController {
     @GetMapping("/tournaments/{tournamentId}/auction-players")
     public ResponseEntity<List<AuctionPlayerResponse>> getAllByTournament(
             @PathVariable Long tournamentId, Authentication auth) {
+        User user = null;
+        if (auth != null && auth.isAuthenticated()) {
+            user = currentUser(auth);
+        }
         return ResponseEntity.ok(
-                auctionPlayerService.getAllByTournament(tournamentId, currentUser(auth)));
+                auctionPlayerService.getAllByTournament(tournamentId, user));
     }
 
     @PostMapping(value = "/tournaments/{tournamentId}/auction-players")

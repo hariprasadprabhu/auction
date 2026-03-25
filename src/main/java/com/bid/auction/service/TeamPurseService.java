@@ -126,12 +126,12 @@ public class TeamPurseService {
     // ...existing code...
     private TeamPurseResponse toResponse(TeamPurse tp) {
         Team team = tp.getTeam();
-        String logoUrl = team.getLogo() != null ? "/teams/" + team.getId() + "/logo" : null;
-        
+        String logo = team.getLogo();
+
         return TeamPurseResponse.builder()
                 .id(tp.getId()).teamId(team.getId()).teamNumber(team.getTeamNumber())
                 .teamName(team.getName()).tournamentId(tp.getTournament().getId())
-                .logoUrl(logoUrl)
+                .logoUrl(logo)
                 .initialPurse(tp.getInitialPurse()).currentPurse(tp.getCurrentPurse())
                 .purseUsed(tp.getPurseUsed()).maxBidPerPlayer(tp.getMaxBidPerPlayer())
                 .reservedFund(tp.getReservedFund()).availableForBidding(tp.getAvailableForBidding())

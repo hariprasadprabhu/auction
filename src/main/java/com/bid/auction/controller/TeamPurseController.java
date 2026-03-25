@@ -4,6 +4,7 @@ import com.bid.auction.service.TeamPurseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,9 @@ import java.util.List;
 public class TeamPurseController {
     private final TeamPurseService teamPurseService;
     @GetMapping("/tournaments/{tournamentId}/team-purses")
-    @Operation(summary = "Get all team purses for a tournament",
-            description = "Returns financial details for all teams in a tournament")
+    @SecurityRequirements  // No authentication required - public endpoint
+    @Operation(summary = "Get all team purses for a tournament (public)",
+            description = "Returns financial details for all teams in a tournament. No authentication required.")
     public ResponseEntity<List<TeamPurseResponse>> getAllTeamPurses(
             @Parameter(description = "Tournament ID") @PathVariable Long tournamentId) {
         List<TeamPurseResponse> purses = teamPurseService.getAllTeamPurses(tournamentId);

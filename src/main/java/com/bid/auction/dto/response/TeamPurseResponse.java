@@ -19,6 +19,9 @@ public class TeamPurseResponse {
     private String teamName;
     private Long tournamentId;
     
+    /** Team logo URL */
+    private String logoUrl;
+    
     /** Initial purse amount allocated to the team */
     private Long initialPurse;
     

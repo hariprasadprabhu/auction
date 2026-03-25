@@ -21,8 +21,12 @@ public class TeamPurseService {
                 ? tournament.getPurseAmount() : 1000000L;
         Integer playersPerTeam = tournament.getPlayersPerTeam() != null ? tournament.getPlayersPerTeam() : 11;
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        // Reserved = (remainingSlots - 1) × Base price
-        Long reserved = (long) (playersPerTeam - 1) * basePrice;
+        
+        // Calculate reserved purse dynamically
+        // If remainingSlots <= 1, no reservation needed (use all available amount)
+        // Otherwise reserve for remaining slots minus 1 (for current bid)
+        Long reserved = playersPerTeam <= 1 ? 0L : (long) (playersPerTeam - 1) * basePrice;
+        
         // Max bid per player = current purse - reserved
         Long maxBid = teamPurse - reserved;
         TeamPurse tp = TeamPurse.builder().team(team).tournament(tournament).initialPurse(teamPurse)
@@ -34,7 +38,7 @@ public class TeamPurseService {
     @Transactional
     public TeamPurse updatePurseOnPlayerSold(Team team, Tournament tournament, Long soldPrice) {
         TeamPurse tp = findByTeamAndTournament(team.getId(), tournament.getId());
-        
+
         // Deduct the sold price from purse
         tp.setPurseUsed(tp.getPurseUsed() + soldPrice);
         tp.setCurrentPurse(tp.getInitialPurse() - tp.getPurseUsed());
@@ -45,7 +49,8 @@ public class TeamPurseService {
         
         // Recalculate reserved fund based on new remainingSlots
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        Long reserved = (long) (tp.getRemainingSlots() - 1) * basePrice;
+        // If remainingSlots <= 1, no reservation needed (can use all remaining purse)
+        Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
         tp.setReservedFund(reserved);
         
         // Recalculate availableForBidding
@@ -71,7 +76,8 @@ public class TeamPurseService {
         
         // Recalculate reserved fund based on new remainingSlots
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        Long reserved = (long) (tp.getRemainingSlots() - 1) * basePrice;
+        // If remainingSlots <= 1, no reservation needed (can use all remaining purse)
+        Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
         tp.setReservedFund(reserved);
         
         // Recalculate availableForBidding
@@ -91,8 +97,8 @@ public class TeamPurseService {
                 ? tournament.getPurseAmount() : 1000000L;
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
         for (TeamPurse tp : purses) {
-            // Reserved = (remainingSlots - 1) × Base price
-            Long reserved = (long) (tp.getRemainingSlots() - 1) * basePrice;
+            // Calculate reserved dynamically - if remainingSlots <= 1, no reservation
+            Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
             // Max bid per player = current purse - reserved
             Long maxBid = tp.getCurrentPurse() - reserved;
             tp.setInitialPurse(teamPurse);

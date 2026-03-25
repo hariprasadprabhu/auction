@@ -28,8 +28,8 @@ public class TournamentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TournamentResponse> getById(@PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(tournamentService.getById(id, currentUser(auth)));
+    public ResponseEntity<TournamentResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(tournamentService.getPublicDetails(id));
     }
 
     /**

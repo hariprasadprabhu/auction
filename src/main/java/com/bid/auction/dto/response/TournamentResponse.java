@@ -29,5 +29,6 @@ public class TournamentResponse {
     private Long basePrice;
     private Long initialIncrement;
     private String logoUrl;
+    private Boolean paymentProofRequired;
 }
 

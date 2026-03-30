@@ -4,47 +4,33 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
-@Table(name = "teams")
+@Table(name = "sponsors")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Team {
+public class Sponsor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String teamNumber;
-
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String name;
 
-    @Column(nullable = false)
-    private String ownerName;
+    @Column(length = 255)
+    private String personName;
 
-    private String mobileNumber;
-
-    @Column(name = "logo")
-    private String logo;
+    @Column(length = 1000)
+    private String personImageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tournament_id", nullable = false)
     @ToString.Exclude
     private Tournament tournament;
-
-    @OneToMany(mappedBy = "soldToTeam", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    private List<AuctionPlayer> auctionPlayers;
-
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    private List<TeamPurse> teamPurses;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

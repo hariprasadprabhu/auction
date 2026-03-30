@@ -2,7 +2,6 @@ package com.bid.auction.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class TeamRequest {
@@ -19,6 +18,6 @@ public class TeamRequest {
     @NotBlank(message = "Mobile number is required")
     private String mobileNumber;
 
-    private MultipartFile logo;
+    private String logo;
 }
 

@@ -42,9 +42,11 @@ public class Tournament {
     private Long basePrice;
     private Long initialIncrement;
 
-    @Column(name = "logo", columnDefinition = "bytea")
-    private byte[] logo;
-    private String logoContentType;
+    @Column(name = "logo")
+    private String logo;
+
+    @Column(name = "payment_proof_required")
+    private Boolean paymentProofRequired;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id", nullable = false)
@@ -74,6 +76,11 @@ public class Tournament {
     @Builder.Default
     @ToString.Exclude
     private List<TeamPurse> teamPurses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    private List<Sponsor> sponsors = new ArrayList<>();
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

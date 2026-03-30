@@ -36,9 +36,8 @@ public class AuctionPlayer {
 
     private Long basePrice;
 
-    @Column(name = "photo", columnDefinition = "bytea")
-    private byte[] photo;
-    private String photoContentType;
+    @Column(name = "photo")
+    private String photo;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

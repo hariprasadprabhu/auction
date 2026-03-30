@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class AuctionPlayerRequest {
@@ -37,6 +36,6 @@ public class AuctionPlayerRequest {
     @Min(value = 1, message = "Base price must be at least 1")
     private Long basePrice;
 
-    private MultipartFile photo;
+    private String photo;
 }
 

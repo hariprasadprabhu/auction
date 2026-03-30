@@ -12,7 +12,6 @@ import com.bid.auction.service.PlayerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -62,11 +61,10 @@ public class PlayerController {
 
     // ── Public self-registration ───────────────────────────────────────────────
 
-    @PostMapping(value = "/players/register/{tournamentId}",
-                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/players/register/{tournamentId}")
     public ResponseEntity<PlayerResponse> register(
             @PathVariable Long tournamentId,
-            @ModelAttribute PlayerRegisterRequest request) {
+            @Valid @RequestBody PlayerRegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(playerService.register(tournamentId, request));
     }
@@ -78,10 +76,10 @@ public class PlayerController {
         return ResponseEntity.ok(playerService.getById(id, currentUser(auth)));
     }
 
-    @PutMapping(value = "/players/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/players/{id}")
     public ResponseEntity<PlayerResponse> update(
             @PathVariable Long id,
-            @ModelAttribute PlayerRegisterRequest request,
+            @Valid @RequestBody PlayerRegisterRequest request,
             Authentication auth) {
         return ResponseEntity.ok(playerService.update(id, request, currentUser(auth)));
     }
@@ -130,7 +128,7 @@ public class PlayerController {
 
     /**
      * Promote an APPROVED registered player into the live auction pool.
-     * Copies name, playerNumber, role and photo from the Player record.
+     * Copies name, playerNumber, role and photo URL from the Player record.
      * Admin provides the extra cricket stats (age, city, battingStyle, bowlingStyle, basePrice).
      */
     @PostMapping("/players/{id}/add-to-auction")
@@ -142,29 +140,6 @@ public class PlayerController {
                 .body(auctionPlayerService.promoteToAuction(id, request, currentUser(auth)));
     }
 
-    // ── Public image endpoints ─────────────────────────────────────────────────
-
-    @GetMapping("/players/{id}/photo")
-    public ResponseEntity<byte[]> getPhoto(@PathVariable Long id) {
-        byte[] photo = playerService.getPhoto(id);
-        String contentType = playerService.getPhotoContentType(id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(photo);
-    }
-
-    // ── Auth-required payment proof ────────────────────────────────────────────
-
-    @GetMapping("/players/{id}/payment-proof")
-    public ResponseEntity<byte[]> getPaymentProof(@PathVariable Long id, Authentication auth) {
-        // ownership will be verified inside the service
-        playerService.getById(id, currentUser(auth)); // triggers ownership check
-        byte[] proof = playerService.getPaymentProof(id);
-        String contentType = playerService.getPaymentProofContentType(id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(proof);
-    }
 
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());

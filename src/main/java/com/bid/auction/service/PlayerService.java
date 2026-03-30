@@ -12,9 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -60,12 +58,12 @@ public class PlayerService {
                 .lastName(req.getLastName())
                 .dob(req.getDob())
                 .role(req.getRole())
+                .photo(req.getPhoto())
+                .paymentProof(req.getPaymentProof())
                 .status(PlayerStatus.PENDING)
                 .tournament(tournament)
                 .build();
 
-        setPhoto(player, req.getPhoto());
-        setPaymentProof(player, req.getPaymentProof());
 
         return toResponse(playerRepository.save(player));
     }
@@ -80,9 +78,9 @@ public class PlayerService {
         if (req.getLastName() != null) player.setLastName(req.getLastName());
         if (req.getDob() != null) player.setDob(req.getDob());
         player.setRole(req.getRole());
-        if (req.getPhoto() != null && !req.getPhoto().isEmpty()) setPhoto(player, req.getPhoto());
-        if (req.getPaymentProof() != null && !req.getPaymentProof().isEmpty())
-            setPaymentProof(player, req.getPaymentProof());
+        if (req.getPhoto() != null && !req.getPhoto().isEmpty()) player.setPhoto(req.getPhoto());
+        if (req.getPaymentProof() != null && !req.getPaymentProof().isEmpty()) 
+            player.setPaymentProof(req.getPaymentProof());
 
         Player saved = playerRepository.save(player);
         auctionPlayerService.syncFromPlayer(saved);   // propagate to AuctionPlayer
@@ -224,58 +222,10 @@ public class PlayerService {
         );
     }
 
-    // ── Photo / PaymentProof bytes ────────────────────────────────────────────
-    public byte[] getPhoto(Long id) {
-        Player player = findPlayer(id);
-        if (player.getPhoto() == null)
-            throw new ResourceNotFoundException("Photo not found for player: " + id);
-        return player.getPhoto();
-    }
-
-    public String getPhotoContentType(Long id) {
-        Player player = findPlayer(id);
-        return player.getPhotoContentType() != null ? player.getPhotoContentType() : "image/jpeg";
-    }
-
-    public byte[] getPaymentProof(Long id) {
-        Player player = findPlayer(id);
-        if (player.getPaymentProof() == null)
-            throw new ResourceNotFoundException("Payment proof not found for player: " + id);
-        return player.getPaymentProof();
-    }
-
-    public String getPaymentProofContentType(Long id) {
-        Player player = findPlayer(id);
-        return player.getPaymentProofContentType() != null
-                ? player.getPaymentProofContentType() : "application/octet-stream";
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
     private Player findPlayer(Long id) {
         return playerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + id));
-    }
-
-    private void setPhoto(Player player, MultipartFile file) {
-        if (file != null && !file.isEmpty()) {
-            try {
-                player.setPhoto(file.getBytes());
-                player.setPhotoContentType(file.getContentType());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read photo file");
-            }
-        }
-    }
-
-    private void setPaymentProof(Player player, MultipartFile file) {
-        if (file != null && !file.isEmpty()) {
-            try {
-                player.setPaymentProof(file.getBytes());
-                player.setPaymentProofContentType(file.getContentType());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read payment proof file");
-            }
-        }
     }
 
     public PlayerResponse toResponse(Player p) {
@@ -288,9 +238,8 @@ public class PlayerService {
                 .role(p.getRole())
                 .status(p.getStatus() != null ? p.getStatus().name() : null)
                 .tournamentId(p.getTournament().getId())
-                .photoUrl(p.getPhoto() != null ? "/api/players/" + p.getId() + "/photo" : null)
-                .paymentProofUrl(p.getPaymentProof() != null
-                        ? "/api/players/" + p.getId() + "/payment-proof" : null)
+                .photoUrl(p.getPhoto())
+                .paymentProofUrl(p.getPaymentProof())
                 .build();
     }
 }

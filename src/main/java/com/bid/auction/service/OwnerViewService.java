@@ -25,7 +25,8 @@ public class OwnerViewService {
     private final TournamentService tournamentService;
 
     public OwnerViewResponse getOwnerView(Long tournamentId, User user) {
-        Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
+        // For public access, skip ownership verification
+        Tournament tournament = tournamentService.findById(tournamentId);
 
         List<Team> teams = teamRepository.findByTournamentId(tournamentId);
         List<AuctionPlayer> allPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);

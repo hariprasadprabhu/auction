@@ -137,18 +137,61 @@ public class PlayerService {
         playerRepository.delete(player);
     }
 
+    // ── Bulk Delete Players (with per-player refunds) ────────────────────────
+    // For each player in the list:
+    //   - Verifies the player belongs to this tournament
+    //   - If the player is SOLD, refunds the sold price to the team's purse
+    //     and recalculates all team values (currentPurse, remainingSlots, maxBid, etc.)
+    //   - Deletes all linked auction player records
+    //   - Deletes the player record
+    // Players not found or belonging to a different tournament are skipped and reported.
+    @Transactional(timeout = 60)
+    public Map<String, Object> deleteBulk(Long tournamentId, List<Long> playerIds, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+
+        int deletedCount = 0;
+        int skippedCount = 0;
+        java.util.List<Long> skippedIds = new java.util.ArrayList<>();
+
+        for (Long playerId : playerIds) {
+            Player player = playerRepository.findById(playerId).orElse(null);
+
+            // Skip if player not found or belongs to a different tournament
+            if (player == null || !player.getTournament().getId().equals(tournamentId)) {
+                skippedCount++;
+                skippedIds.add(playerId);
+                continue;
+            }
+
+            // Refund team if SOLD, and delete all linked auction player records
+            auctionPlayerService.deletePlayerWithAuctionRefunds(playerId);
+
+            // Delete the player record
+            playerRepository.delete(player);
+            deletedCount++;
+        }
+
+        return java.util.Map.of(
+            "deletedCount", deletedCount,
+            "skippedCount", skippedCount,
+            "skippedIds", skippedIds,
+            "status", "SUCCESS"
+        );
+    }
+
     // ── Delete All Players by Tournament ─────────────────────────────────────
     @Transactional(timeout = 60)
     public void deleteAllByTournament(Long tournamentId, User user) {
-        tournamentService.findAndVerifyOwner(tournamentId, user);
-        Tournament tournament = tournamentService.findById(tournamentId);
-        List<Player> players = playerRepository.findByTournament(tournament);
-        for (Player player : players) {
-            // Remove from auction and handle refunds if needed
-            auctionPlayerService.deletePlayerWithAuctionRefunds(player.getId());
-            playerRepository.delete(player);
-        }
-        // Optionally, reset team purse data here if required
+        Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
+
+        // Step 1: Bulk-delete all auction players for the tournament and fully reset
+        // all team purses (currentPurse, purseUsed, playersBought, remainingSlots,
+        // maxBidPerPlayer, reservedFund) back to the tournament's initial settings.
+        auctionPlayerService.clearAuctionDataAndResetPurses(tournamentId, tournament);
+
+        // Step 2: Delete all player records for the tournament
+        List<Player> players = playerRepository.findByTournamentId(tournamentId);
+        playerRepository.deleteAll(players);
     }
 
     // ── Approve / Reject ──────────────────────────────────────────────────────

@@ -141,6 +141,21 @@ public class PlayerController {
     }
 
     /**
+     * Delete a specific list of players for a tournament.
+     * Only the tournament owner can perform this action.
+     * If a player was SOLD to a team, the sold price is refunded to that team's purse
+     * and all related auction values are recalculated.
+     * Players not found or belonging to a different tournament are skipped.
+     */
+    @DeleteMapping("/tournaments/{tournamentId}/players/bulk")
+    public ResponseEntity<Map<String, Object>> deleteMultiplePlayers(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody BulkPlayerActionRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.deleteBulk(tournamentId, request.getPlayerIds(), currentUser(auth)));
+    }
+
+    /**
      * Delete all players for a tournament, and reset all related auction and team purse data.
      * Only the tournament owner can perform this action.
      */

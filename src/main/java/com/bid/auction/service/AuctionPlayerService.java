@@ -448,6 +448,25 @@ public class AuctionPlayerService {
         );
     }
 
+    // ── Clear All Auction Data & Reset Team Purses (used when all players are deleted) ──
+    @Transactional
+    public void clearAuctionDataAndResetPurses(Long tournamentId, Tournament tournament) {
+        // Step 1: Delete ALL auction players for the tournament in bulk
+        List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
+        auctionPlayerRepository.deleteAll(auctionPlayers);
+
+        // Step 2: Delete ALL team purses for this tournament
+        // This prevents stale/dirty purse values after player deletion
+        teamPurseService.deleteTeamPursesForTournament(tournamentId);
+
+        // Step 3: Reinitialize team purses from current tournament settings
+        // Resets: currentPurse, purseUsed, playersBought, remainingSlots, maxBidPerPlayer, reservedFund
+        List<Team> teams = teamRepository.findByTournamentId(tournamentId);
+        for (Team team : teams) {
+            teamPurseService.initializePurse(team, tournament);
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
     private AuctionPlayer findAuctionPlayer(Long id) {
         return auctionPlayerRepository.findById(id)

@@ -27,8 +27,8 @@ public class TeamPurseService {
         // Otherwise reserve for remaining slots minus 1 (for current bid)
         Long reserved = playersPerTeam <= 1 ? 0L : (long) (playersPerTeam - 1) * basePrice;
         
-        // Max bid per player = current purse - reserved
-        Long maxBid = teamPurse - reserved;
+        // Max bid per player = current purse - reserved (clamp to 0 so it never goes negative)
+        Long maxBid = Math.max(0L, teamPurse - reserved);
         TeamPurse tp = TeamPurse.builder().team(team).tournament(tournament).initialPurse(teamPurse)
                 .currentPurse(teamPurse).purseUsed(0L).maxBidPerPlayer(maxBid)
                 .reservedFund(reserved).availableForBidding(maxBid)
@@ -97,15 +97,18 @@ public class TeamPurseService {
                 ? tournament.getPurseAmount() : 1000000L;
         Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
         for (TeamPurse tp : purses) {
+            // 1. Establish the new initialPurse and recalculate currentPurse with it FIRST
+            //    so that maxBid is derived from the correct (updated) currentPurse value.
+            Long newCurrentPurse = Math.max(0L, teamPurse - tp.getPurseUsed());
             // Calculate reserved dynamically - if remainingSlots <= 1, no reservation
             Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
-            // Max bid per player = current purse - reserved
-            Long maxBid = tp.getCurrentPurse() - reserved;
+            // Max bid per player = current purse - reserved (clamp to 0)
+            Long maxBid = Math.max(0L, newCurrentPurse - reserved);
             tp.setInitialPurse(teamPurse);
+            tp.setCurrentPurse(newCurrentPurse);
             tp.setMaxBidPerPlayer(maxBid);
             tp.setReservedFund(reserved);
-            tp.setAvailableForBidding(Math.max(0L, maxBid));
-            tp.setCurrentPurse(tp.getInitialPurse() - tp.getPurseUsed());
+            tp.setAvailableForBidding(maxBid);
             teamPurseRepository.save(tp);
         }
     }

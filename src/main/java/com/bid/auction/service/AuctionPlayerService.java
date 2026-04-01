@@ -387,28 +387,26 @@ public class AuctionPlayerService {
 
         // Get all auction players in this tournament
         List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
-        
-        // Step 1: Refund all sold players back to their teams
-        for (AuctionPlayer ap : auctionPlayers) {
-            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
-                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), tournament, ap.getSoldPrice());
-            }
+
+        // Step 1: Reset every linked player's status back to APPROVED in one bulk UPDATE.
+        //         Using a single query with clearAutomatically=true so the JPA first-level
+        //         cache is flushed+cleared immediately — no stale-entity issues on subsequent
+        //         reads (e.g. findByTournamentAndStatus in Step 3 below).
+        List<Long> linkedPlayerIds = auctionPlayers.stream()
+                .filter(ap -> ap.getPlayer() != null)
+                .map(ap -> ap.getPlayer().getId())
+                .collect(java.util.stream.Collectors.toList());
+
+        if (!linkedPlayerIds.isEmpty()) {
+            playerRepository.updateStatusByIds(linkedPlayerIds, PlayerStatus.APPROVED);
         }
-        
-        // Step 1b: Reset player status from SOLD/UNSOLD back to APPROVED for all players
-        // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
-        for (AuctionPlayer ap : auctionPlayers) {
-            Player player = ap.getPlayer();
-            if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
-                playerRepository.updateStatusById(player.getId(), PlayerStatus.APPROVED);
-            }
-        }
-        
-        // Step 2: Delete all auction players
+
+        // Step 2: Delete all auction player records
         auctionPlayerRepository.deleteAll(auctionPlayers);
-        
+
         // Step 2b: Delete ALL team purses for this tournament BEFORE reinitializing
-        // This prevents unique constraint violations when reinitializing
+        //          (prevents unique-constraint violations; also makes the individual
+        //           refund step unnecessary — initializePurse gives a clean slate)
         teamPurseService.deleteTeamPursesForTournament(tournamentId);
         
         // Step 3: Get all approved players in the tournament

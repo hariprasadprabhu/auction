@@ -13,22 +13,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TeamPurseService {
     private final TeamPurseRepository teamPurseRepository;
+
+    // ── Helper: compute reserved + maxBid from the three inputs ──────────────
+    // reserved          = (remainingSlots - 1) × basePrice
+    // maxBidPerPlayer   = currentPurse - reserved  (≥ 0)
+    // availableForBid   = maxBidPerPlayer
+    private static long calcReserved(int remainingSlots, long basePrice) {
+        return remainingSlots <= 1 ? 0L : (long) (remainingSlots - 1) * basePrice;
+    }
+
+    private static long calcMaxBid(long currentPurse, long reserved) {
+        return Math.max(0L, currentPurse - reserved);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Transactional
     public TeamPurse initializePurse(Team team, Tournament tournament) {
         teamPurseRepository.deleteByTeamIdAndTournamentId(team.getId(), tournament.getId());
-        Long teamPurse = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0
-                ? tournament.getPurseAmount() : 1000000L;
-        Integer playersPerTeam = tournament.getPlayersPerTeam() != null ? tournament.getPlayersPerTeam() : 11;
-        Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
 
-        // reservedFund is informational: shows how much is "earmarked" for remaining slots at base price.
-        // It does NOT constrain maxBidPerPlayer — doing so caused maxBid=0 when
-        // purseAmount ≤ (playersPerTeam-1) × basePrice (a common, valid tournament setup).
-        Long reserved = playersPerTeam <= 1 ? 0L : (long) (playersPerTeam - 1) * basePrice;
+        long teamPurse     = tournament.getPurseAmount()    != null && tournament.getPurseAmount()    > 0 ? tournament.getPurseAmount()    : 1_000_000L;
+        int  playersPerTeam = tournament.getPlayersPerTeam() != null                                      ? tournament.getPlayersPerTeam()  : 11;
+        long basePrice     = tournament.getBasePrice()      != null                                      ? tournament.getBasePrice()       : 5_000L;
 
-        // A team can bid up to their full purse on any single player.
-        // The natural spending constraint comes from their remaining currentPurse.
-        Long maxBid = teamPurse;
+        long reserved = calcReserved(playersPerTeam, basePrice);
+        long maxBid   = calcMaxBid(teamPurse, reserved);
 
         TeamPurse tp = TeamPurse.builder()
                 .team(team).tournament(tournament)
@@ -37,6 +46,7 @@ public class TeamPurseService {
                 .playersBought(0).remainingSlots(playersPerTeam).build();
         return teamPurseRepository.save(tp);
     }
+
     @Transactional
     public TeamPurse updatePurseOnPlayerSold(Team team, Tournament tournament, Long soldPrice) {
         TeamPurse tp = findByTeamAndTournament(team.getId(), tournament.getId());
@@ -46,17 +56,16 @@ public class TeamPurseService {
         tp.setPlayersBought(tp.getPlayersBought() + 1);
         tp.setRemainingSlots(tp.getRemainingSlots() - 1);
 
-        Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
-        tp.setReservedFund(reserved);
+        long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5_000L;
+        long reserved  = calcReserved(tp.getRemainingSlots(), basePrice);
+        long maxBid    = calcMaxBid(tp.getCurrentPurse(), reserved);
 
-        // maxBidPerPlayer = remaining purse (team can bid up to whatever they have left)
-        Long maxBid = Math.max(0L, tp.getCurrentPurse());
+        tp.setReservedFund(reserved);
         tp.setMaxBidPerPlayer(maxBid);
         tp.setAvailableForBidding(maxBid);
-
         return teamPurseRepository.save(tp);
     }
+
     @Transactional
     public TeamPurse updatePurseOnPlayerUnsold(Team team, Tournament tournament, Long unsolvedPrice) {
         TeamPurse tp = findByTeamAndTournament(team.getId(), tournament.getId());
@@ -66,31 +75,32 @@ public class TeamPurseService {
         tp.setPlayersBought(Math.max(0, tp.getPlayersBought() - 1));
         tp.setRemainingSlots(tp.getRemainingSlots() + 1);
 
-        Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
-        tp.setReservedFund(reserved);
+        long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5_000L;
+        long reserved  = calcReserved(tp.getRemainingSlots(), basePrice);
+        long maxBid    = calcMaxBid(tp.getCurrentPurse(), reserved);
 
-        Long maxBid = Math.max(0L, tp.getCurrentPurse());
+        tp.setReservedFund(reserved);
         tp.setMaxBidPerPlayer(maxBid);
         tp.setAvailableForBidding(maxBid);
-
         return teamPurseRepository.save(tp);
     }
+
     @Transactional(timeout = 45)
     public void recalculateAllTeamPurses(Tournament tournament) {
         List<TeamPurse> purses = teamPurseRepository.findByTournamentId(tournament.getId());
-        Long teamPurse = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0
-                ? tournament.getPurseAmount() : 1000000L;
-        Long basePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
+
+        long newInitialPurse = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0 ? tournament.getPurseAmount() : 1_000_000L;
+        long basePrice       = tournament.getBasePrice()   != null                                    ? tournament.getBasePrice()   : 5_000L;
+
         for (TeamPurse tp : purses) {
-            Long newCurrentPurse = Math.max(0L, teamPurse - tp.getPurseUsed());
-            Long reserved = tp.getRemainingSlots() <= 1 ? 0L : (long) (tp.getRemainingSlots() - 1) * basePrice;
-            // maxBid = full remaining purse (not reduced by reservation)
-            Long maxBid = newCurrentPurse;
-            tp.setInitialPurse(teamPurse);
+            long newCurrentPurse = Math.max(0L, newInitialPurse - tp.getPurseUsed());
+            long reserved        = calcReserved(tp.getRemainingSlots(), basePrice);
+            long maxBid          = calcMaxBid(newCurrentPurse, reserved);
+
+            tp.setInitialPurse(newInitialPurse);
             tp.setCurrentPurse(newCurrentPurse);
-            tp.setMaxBidPerPlayer(maxBid);
             tp.setReservedFund(reserved);
+            tp.setMaxBidPerPlayer(maxBid);
             tp.setAvailableForBidding(maxBid);
             teamPurseRepository.save(tp);
         }

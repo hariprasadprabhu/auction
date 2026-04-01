@@ -372,7 +372,19 @@ public class AuctionPlayerService {
     @Transactional
     public Map<String, Object> resetEntireAuction(Long tournamentId, User user) {
         Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
-        
+        return resetEntireAuctionInternal(tournament);
+    }
+
+    /**
+     * Internal reset method that accepts an already-verified Tournament entity.
+     * Called directly from TournamentService.update() when auction-affecting
+     * fields (basePrice, initialIncrement, playersPerTeam, purseAmount) change,
+     * bypassing the ownership re-check (already done by the caller).
+     */
+    @Transactional
+    public Map<String, Object> resetEntireAuctionInternal(Tournament tournament) {
+        Long tournamentId = tournament.getId();
+
         // Get all auction players in this tournament
         List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
         

@@ -9,6 +9,8 @@ import com.bid.auction.exception.ResourceNotFoundException;
 import com.bid.auction.repository.IncrementRuleRepository;
 import com.bid.auction.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,13 @@ public class TournamentService {
     private final TournamentRepository tournamentRepository;
     private final TeamPurseService teamPurseService;
     private final IncrementRuleRepository incrementRuleRepository;
+
+    /**
+     * Injected lazily to break the circular dependency:
+     * TournamentService → AuctionPlayerService → TournamentService
+     */
+    @Autowired @Lazy
+    private AuctionPlayerService auctionPlayerService;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<TournamentResponse> getAll(User user) {
@@ -67,8 +76,15 @@ public class TournamentService {
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
+    @Transactional
     public TournamentResponse update(Long id, TournamentRequest req, User user) {
         Tournament t = findAndVerifyOwner(id, user);
+
+        // Capture current values of fields that affect the auction before overwriting them
+        Long oldBasePrice      = t.getBasePrice();
+        Long oldInitIncrement  = t.getInitialIncrement();
+        Integer oldPlayersPerTeam = t.getPlayersPerTeam();
+        Long oldPurseAmount    = t.getPurseAmount();
 
         t.setName(req.getName());
         t.setDate(req.getDate());
@@ -93,6 +109,18 @@ public class TournamentService {
 
         // Recalculate all team purses if financial details changed
         teamPurseService.recalculateAllTeamPurses(updatedTournament);
+
+        // If any auction-critical field changed, reset the entire auction so that
+        // existing auction data reflects the new tournament configuration.
+        boolean auctionFieldChanged =
+                !java.util.Objects.equals(req.getBasePrice(),      oldBasePrice)      ||
+                !java.util.Objects.equals(req.getInitialIncrement(), oldInitIncrement) ||
+                !java.util.Objects.equals(req.getPlayersPerTeam(), oldPlayersPerTeam) ||
+                !java.util.Objects.equals(req.getPurseAmount(),    oldPurseAmount);
+
+        if (auctionFieldChanged) {
+            auctionPlayerService.resetEntireAuctionInternal(updatedTournament);
+        }
 
         return toResponse(updatedTournament);
     }

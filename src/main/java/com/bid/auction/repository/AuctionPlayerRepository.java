@@ -53,6 +53,12 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     @Query("DELETE FROM AuctionPlayer ap WHERE ap.soldToTeam.id = :teamId")
     void deleteBySoldToTeamId(@Param("teamId") Long teamId);
 
+    /** Bulk-delete all auction players for a tournament in one shot. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM AuctionPlayer ap WHERE ap.tournament.id = :tournamentId")
+    void deleteAllByTournamentId(@Param("tournamentId") Long tournamentId);
+
     @Query("SELECT COALESCE(MAX(ap.sortOrder), 0) FROM AuctionPlayer ap WHERE ap.tournament.id = :tournamentId")
     Integer findMaxSortOrderByTournamentId(@Param("tournamentId") Long tournamentId);
 

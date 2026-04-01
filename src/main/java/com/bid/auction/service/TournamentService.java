@@ -107,19 +107,25 @@ public class TournamentService {
 
         Tournament updatedTournament = tournamentRepository.save(t);
 
-        // Recalculate all team purses if financial details changed
-        teamPurseService.recalculateAllTeamPurses(updatedTournament);
-
-        // If any auction-critical field changed, reset the entire auction so that
-        // existing auction data reflects the new tournament configuration.
+        // Determine whether any auction-critical field actually changed BEFORE
+        // touching team purses, so we can choose the right code path below.
         boolean auctionFieldChanged =
-                !java.util.Objects.equals(req.getBasePrice(),      oldBasePrice)      ||
+                !java.util.Objects.equals(req.getBasePrice(),       oldBasePrice)      ||
                 !java.util.Objects.equals(req.getInitialIncrement(), oldInitIncrement) ||
-                !java.util.Objects.equals(req.getPlayersPerTeam(), oldPlayersPerTeam) ||
-                !java.util.Objects.equals(req.getPurseAmount(),    oldPurseAmount);
+                !java.util.Objects.equals(req.getPlayersPerTeam(),  oldPlayersPerTeam) ||
+                !java.util.Objects.equals(req.getPurseAmount(),     oldPurseAmount);
 
         if (auctionFieldChanged) {
+            // Full reset: wipes all auction players, resets player statuses, and
+            // re-initialises every team purse from scratch with the new settings.
+            // This makes a preceding recalculateAllTeamPurses call unnecessary —
+            // calling both in the same transaction was the root cause of detached-
+            // entity / stale-JPA-cache bugs in the previous implementation.
             auctionPlayerService.resetEntireAuctionInternal(updatedTournament);
+        } else {
+            // No auction reset needed — just re-crunch the purse figures so they
+            // reflect any non-critical changes (e.g. name, date, sport).
+            teamPurseService.recalculateAllTeamPurses(updatedTournament);
         }
 
         return toResponse(updatedTournament);

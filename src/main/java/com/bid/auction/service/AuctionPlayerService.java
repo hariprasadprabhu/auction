@@ -116,34 +116,15 @@ public class AuctionPlayerService {
     public void removeFromAuctionIfPresent(Long playerId) {
         // Get all auction players linked to this player
         List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
-        
         // For each linked auction player, if it's sold to a team, refund the team and recalculate values
         for (AuctionPlayer ap : linkedAuctionPlayers) {
             if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
                 // Player was SOLD to a team - refund and recalculate all team values
-                // This updates:
-                // - currentPurse (adds back the sold price)
-                // - purseUsed (deducts the sold price)
-                // - playersBought (decrements by 1)
-                // - remainingSlots (increments by 1)
-                // - reservedFund (recalculated based on new remainingSlots)
-                // - maxBidPerPlayer (recalculated as current purse - reserved fund)
-                // - availableForBidding (recalculated as current purse - reserved fund)
                 teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
-                
-                // IMPORTANT: Clear player reference but KEEP auction record
-                // This preserves team's auction history showing they purchased this player
-                // The auctionStatus, soldToTeam, and soldPrice remain for audit trail
-                ap.setPlayer(null);
-                auctionPlayerRepository.save(ap);
-            } else {
-                // For non-SOLD auction players, also clear player reference but keep record
-                ap.setPlayer(null);
-                auctionPlayerRepository.save(ap);
             }
         }
-        // NOTE: We do NOT delete auction player records anymore
-        // This ensures team auction data remains intact even after player deletion
+        // Now delete all auction player records for this player
+        auctionPlayerRepository.deleteByPlayerId(playerId);
     }
 
     // ── Delete player with auction refunds and team purse recalculation ────────

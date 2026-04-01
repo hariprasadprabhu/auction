@@ -140,9 +140,34 @@ public class PlayerController {
                 .body(auctionPlayerService.promoteToAuction(id, request, currentUser(auth)));
     }
 
+    /**
+     * Delete all players for a tournament, and reset all related auction and team purse data.
+     * Only the tournament owner can perform this action.
+     */
+    @DeleteMapping("/tournaments/{tournamentId}/players")
+    public ResponseEntity<Void> deleteAllPlayersByTournament(
+            @PathVariable Long tournamentId,
+            Authentication auth) {
+        playerService.deleteAllByTournament(tournamentId, currentUser(auth));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Bulk register players for a tournament.
+     * Only the tournament owner can perform this action.
+     * Accepts a list of PlayerRegisterRequest and returns a list of PlayerResponse.
+     */
+    @PostMapping("/tournaments/{tournamentId}/players/bulk")
+    public ResponseEntity<List<PlayerResponse>> bulkRegister(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody List<PlayerRegisterRequest> requests,
+            Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(playerService.bulkRegister(tournamentId, requests, currentUser(auth)));
+    }
+
 
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());
     }
 }
-

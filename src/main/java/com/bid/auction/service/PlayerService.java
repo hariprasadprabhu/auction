@@ -24,6 +24,31 @@ public class PlayerService {
     private final TournamentService tournamentService;
     private final AuctionPlayerService auctionPlayerService;
 
+    // ── Bulk Register (auth) ─────────────────────────────────────────────
+    @Transactional(timeout = 60)
+    public List<PlayerResponse> bulkRegister(Long tournamentId, List<PlayerRegisterRequest> reqs, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        long count = playerRepository.countByTournamentId(tournamentId);
+        int[] idx = {0};
+        return reqs.stream().map(req -> {
+            String playerNumber = String.format("P%03d", count + idx[0] + 1);
+            idx[0]++;
+            Player player = Player.builder()
+                    .playerNumber(playerNumber)
+                    .firstName(req.getFirstName())
+                    .lastName(req.getLastName())
+                    .dob(req.getDob())
+                    .role(req.getRole())
+                    .photo(req.getPhoto())
+                    .paymentProof(req.getPaymentProof())
+                    .status(PlayerStatus.PENDING)
+                    .tournament(tournament)
+                    .build();
+            return toResponse(playerRepository.save(player));
+        }).toList();
+    }
+
     // ── List (auth) ───────────────────────────────────────────────────────────
     public List<PlayerResponse> getAllByTournament(Long tournamentId, String status, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
@@ -110,6 +135,20 @@ public class PlayerService {
         
         // Delete the player
         playerRepository.delete(player);
+    }
+
+    // ── Delete All Players by Tournament ─────────────────────────────────────
+    @Transactional(timeout = 60)
+    public void deleteAllByTournament(Long tournamentId, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Tournament tournament = tournamentService.findById(tournamentId);
+        List<Player> players = playerRepository.findByTournament(tournament);
+        for (Player player : players) {
+            // Remove from auction and handle refunds if needed
+            auctionPlayerService.deletePlayerWithAuctionRefunds(player.getId());
+            playerRepository.delete(player);
+        }
+        // Optionally, reset team purse data here if required
     }
 
     // ── Approve / Reject ──────────────────────────────────────────────────────
@@ -243,4 +282,3 @@ public class PlayerService {
                 .build();
     }
 }
-

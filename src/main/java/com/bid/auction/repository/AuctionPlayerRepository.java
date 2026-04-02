@@ -31,8 +31,19 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     /**
      * Delete all auction players linked to a specific player.
      * Using custom query to handle null player references properly.
+     *
+     * flushAutomatically = true  →  flushes all pending JPA changes (e.g. TeamPurse refund UPDATE)
+     *                               to the DB BEFORE the bulk DELETE runs.
+     * clearAutomatically = true  →  clears the first-level cache after the DELETE so subsequent
+     *                               reads don't return stale data.
+     *
+     * Without flushAutomatically the sequence was:
+     *   1. updatePurseOnPlayerUnsold() marks TeamPurse dirty in the first-level cache
+     *   2. deleteByPlayerId() fires the bulk DELETE without flushing first
+     *   3. clearAutomatically evicts all managed entities, including the dirty TeamPurse
+     *   4. The TeamPurse UPDATE is never sent to the DB → refund is silently lost
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("DELETE FROM AuctionPlayer ap WHERE ap.player IS NOT NULL AND ap.player.id = :playerId")
     void deleteByPlayerId(@Param("playerId") Long playerId);
@@ -41,6 +52,12 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     @Transactional
     @Query("DELETE FROM AuctionPlayer ap WHERE ap.soldToTeam.id = :teamId")
     void deleteBySoldToTeamId(@Param("teamId") Long teamId);
+
+    /** Bulk-delete all auction players for a tournament in one shot. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM AuctionPlayer ap WHERE ap.tournament.id = :tournamentId")
+    void deleteAllByTournamentId(@Param("tournamentId") Long tournamentId);
 
     @Query("SELECT COALESCE(MAX(ap.sortOrder), 0) FROM AuctionPlayer ap WHERE ap.tournament.id = :tournamentId")
     Integer findMaxSortOrderByTournamentId(@Param("tournamentId") Long tournamentId);

@@ -88,9 +88,48 @@ public class SponsorController {
         return ResponseEntity.ok(sponsorService.getPublicSponsors(tournamentId));
     }
 
+    /**
+     * Update a sponsor for a tournament. Only tournament owner can edit.
+     */
+    @PutMapping("/tournaments/{tournamentId}/sponsors/{sponsorId}")
+    @Operation(summary = "Update sponsor for a tournament",
+               description = "Update sponsor details. Only tournament owner can perform this action.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sponsor updated successfully",
+            content = @Content(schema = @Schema(implementation = SponsorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Not authorized - must be tournament owner"),
+        @ApiResponse(responseCode = "404", description = "Sponsor or tournament not found")
+    })
+    public ResponseEntity<SponsorResponse> updateSponsor(
+            @Parameter(description = "Tournament ID") @PathVariable Long tournamentId,
+            @Parameter(description = "Sponsor ID") @PathVariable Long sponsorId,
+            @Valid @RequestBody SponsorRequest request,
+            Authentication auth) {
+        User user = currentUser(auth);
+        return ResponseEntity.ok(sponsorService.updateSponsor(tournamentId, sponsorId, request, user));
+    }
+
+    /**
+     * Delete a sponsor for a tournament. Only tournament owner can delete.
+     */
+    @DeleteMapping("/tournaments/{tournamentId}/sponsors/{sponsorId}")
+    @Operation(summary = "Delete sponsor for a tournament",
+               description = "Delete sponsor. Only tournament owner can perform this action.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Sponsor deleted successfully"),
+        @ApiResponse(responseCode = "403", description = "Not authorized - must be tournament owner"),
+        @ApiResponse(responseCode = "404", description = "Sponsor or tournament not found")
+    })
+    public ResponseEntity<Void> deleteSponsor(
+            @Parameter(description = "Tournament ID") @PathVariable Long tournamentId,
+            @Parameter(description = "Sponsor ID") @PathVariable Long sponsorId,
+            Authentication auth) {
+        User user = currentUser(auth);
+        sponsorService.deleteSponsor(tournamentId, sponsorId, user);
+        return ResponseEntity.noContent().build();
+    }
+
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());
     }
 }
-
-

@@ -116,34 +116,15 @@ public class AuctionPlayerService {
     public void removeFromAuctionIfPresent(Long playerId) {
         // Get all auction players linked to this player
         List<AuctionPlayer> linkedAuctionPlayers = auctionPlayerRepository.findByPlayerId(playerId);
-        
         // For each linked auction player, if it's sold to a team, refund the team and recalculate values
         for (AuctionPlayer ap : linkedAuctionPlayers) {
             if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
                 // Player was SOLD to a team - refund and recalculate all team values
-                // This updates:
-                // - currentPurse (adds back the sold price)
-                // - purseUsed (deducts the sold price)
-                // - playersBought (decrements by 1)
-                // - remainingSlots (increments by 1)
-                // - reservedFund (recalculated based on new remainingSlots)
-                // - maxBidPerPlayer (recalculated as current purse - reserved fund)
-                // - availableForBidding (recalculated as current purse - reserved fund)
                 teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), ap.getTournament(), ap.getSoldPrice());
-                
-                // IMPORTANT: Clear player reference but KEEP auction record
-                // This preserves team's auction history showing they purchased this player
-                // The auctionStatus, soldToTeam, and soldPrice remain for audit trail
-                ap.setPlayer(null);
-                auctionPlayerRepository.save(ap);
-            } else {
-                // For non-SOLD auction players, also clear player reference but keep record
-                ap.setPlayer(null);
-                auctionPlayerRepository.save(ap);
             }
         }
-        // NOTE: We do NOT delete auction player records anymore
-        // This ensures team auction data remains intact even after player deletion
+        // Now delete all auction player records for this player
+        auctionPlayerRepository.deleteByPlayerId(playerId);
     }
 
     // ── Delete player with auction refunds and team purse recalculation ────────
@@ -391,37 +372,54 @@ public class AuctionPlayerService {
     @Transactional
     public Map<String, Object> resetEntireAuction(Long tournamentId, User user) {
         Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
-        
-        // Get all auction players in this tournament
+        return resetEntireAuctionInternal(tournament);
+    }
+
+    /**
+     * Internal reset method that accepts an already-verified Tournament entity.
+     * Called directly from TournamentService.update() when auction-affecting
+     * fields (basePrice, initialIncrement, playersPerTeam, purseAmount) change,
+     * bypassing the ownership re-check (already done by the caller).
+     */
+    @Transactional
+    public Map<String, Object> resetEntireAuctionInternal(Tournament tournament) {
+        Long tournamentId = tournament.getId();
+
+        // Step 1: Load auction players so we can collect the linked-player IDs
+        //         BEFORE we wipe the auction_players table.
         List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
-        
-        // Step 1: Refund all sold players back to their teams
-        for (AuctionPlayer ap : auctionPlayers) {
-            if (ap.getSoldToTeam() != null && ap.getSoldPrice() != null) {
-                teamPurseService.updatePurseOnPlayerUnsold(ap.getSoldToTeam(), tournament, ap.getSoldPrice());
-            }
+        int deletedCount = auctionPlayers.size();
+
+        List<Long> linkedPlayerIds = auctionPlayers.stream()
+                .filter(ap -> ap.getPlayer() != null)
+                .map(ap -> ap.getPlayer().getId())
+                .collect(java.util.stream.Collectors.toList());
+
+        // Step 2: Bulk-delete ALL auction player records in a single JPQL DELETE.
+        //         Using a bulk query avoids the N+1 em.find()+em.remove() pattern that
+        //         Spring Data's deleteAll(Iterable) would produce after a
+        //         clearAutomatically flush, which was the root cause of detached-entity
+        //         issues and stale-state bugs in the previous implementation.
+        //         flushAutomatically=true ensures any pending JPA writes (e.g. from
+        //         recalculateAllTeamPurses) are sent to the DB BEFORE the DELETE so we
+        //         never lose uncommitted changes; clearAutomatically=true refreshes the
+        //         first-level cache afterwards so subsequent reads are clean.
+        auctionPlayerRepository.deleteAllByTournamentId(tournamentId);
+
+        // Step 3: Reset every linked player's status back to APPROVED in one bulk UPDATE.
+        //         clearAutomatically=true keeps the cache clean for the reads in Step 5.
+        if (!linkedPlayerIds.isEmpty()) {
+            playerRepository.updateStatusByIds(linkedPlayerIds, PlayerStatus.APPROVED);
         }
-        
-        // Step 1b: Reset player status from SOLD/UNSOLD back to APPROVED for all players
-        // Use targeted query to avoid I/O issues with large binary fields (photo, payment_proof)
-        for (AuctionPlayer ap : auctionPlayers) {
-            Player player = ap.getPlayer();
-            if (player != null && (player.getStatus() == PlayerStatus.SOLD || player.getStatus() == PlayerStatus.UNSOLD)) {
-                playerRepository.updateStatusById(player.getId(), PlayerStatus.APPROVED);
-            }
-        }
-        
-        // Step 2: Delete all auction players
-        auctionPlayerRepository.deleteAll(auctionPlayers);
-        
-        // Step 2b: Delete ALL team purses for this tournament BEFORE reinitializing
-        // This prevents unique constraint violations when reinitializing
+
+        // Step 4: Delete ALL team purses for this tournament BEFORE reinitializing
+        //         (prevents unique-constraint violations; initializePurse gives a clean slate).
         teamPurseService.deleteTeamPursesForTournament(tournamentId);
-        
-        // Step 3: Get all approved players in the tournament
+
+        // Step 5: Get all approved players in the tournament
         List<Player> approvedPlayers = playerRepository.findByTournamentAndStatus(tournament, PlayerStatus.APPROVED);
-        
-        // Step 4: Re-insert approved players into auction pool with current tournament settings
+
+        // Step 6: Re-insert approved players into auction pool with current tournament settings
         int nextOrder = 1;
         for (Player player : approvedPlayers) {
             AuctionPlayer ap = AuctionPlayer.builder()
@@ -438,25 +436,21 @@ public class AuctionPlayerService {
                     .build();
             auctionPlayerRepository.save(ap);
         }
-        
-        // Step 5: Reset all team purses using CURRENT tournament settings
-        // This recalculates based on latest:
-        //   - purseAmount per team
-        //   - playersPerTeam
-        //   - basePrice
+
+        // Step 7: Reset all team purses using CURRENT tournament settings
         List<Team> teams = teamRepository.findByTournamentId(tournamentId);
         for (Team team : teams) {
             teamPurseService.initializePurse(team, tournament);
         }
-        
+
         // Prepare response with current tournament settings for transparency
-        Long currentPurseAmount = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0 
+        Long currentPurseAmount = tournament.getPurseAmount() != null && tournament.getPurseAmount() > 0
                 ? tournament.getPurseAmount() : 1000000L;
         Integer currentPlayersPerTeam = tournament.getPlayersPerTeam() != null ? tournament.getPlayersPerTeam() : 11;
         Long currentBasePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
-        
+
         return Map.of(
-            "deletedAuctionPlayers", auctionPlayers.size(),
+            "deletedAuctionPlayers", deletedCount,
             "readdedApprovedPlayers", approvedPlayers.size(),
             "teamsReset", teams.size(),
             "appliedTournamentSettings", Map.of(
@@ -465,6 +459,25 @@ public class AuctionPlayerService {
                 "basePrice", currentBasePrice
             )
         );
+    }
+
+    // ── Clear All Auction Data & Reset Team Purses (used when all players are deleted) ──
+    @Transactional
+    public void clearAuctionDataAndResetPurses(Long tournamentId, Tournament tournament) {
+        // Step 1: Delete ALL auction players for the tournament in bulk
+        List<AuctionPlayer> auctionPlayers = auctionPlayerRepository.findByTournamentId(tournamentId);
+        auctionPlayerRepository.deleteAll(auctionPlayers);
+
+        // Step 2: Delete ALL team purses for this tournament
+        // This prevents stale/dirty purse values after player deletion
+        teamPurseService.deleteTeamPursesForTournament(tournamentId);
+
+        // Step 3: Reinitialize team purses from current tournament settings
+        // Resets: currentPurse, purseUsed, playersBought, remainingSlots, maxBidPerPlayer, reservedFund
+        List<Team> teams = teamRepository.findByTournamentId(tournamentId);
+        for (Team team : teams) {
+            teamPurseService.initializePurse(team, tournament);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

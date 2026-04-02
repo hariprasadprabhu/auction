@@ -70,6 +70,38 @@ public class SponsorService {
                 .tournamentId(sponsor.getTournament().getId())
                 .build();
     }
+
+    /**
+     * Update a sponsor's details.
+     * Only the tournament owner can update sponsors.
+     */
+    @Transactional
+    public SponsorResponse updateSponsor(Long tournamentId, Long sponsorId, SponsorRequest request, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Sponsor sponsor = sponsorRepository.findById(sponsorId)
+                .orElseThrow(() -> new IllegalArgumentException("Sponsor not found: " + sponsorId));
+        if (!sponsor.getTournament().getId().equals(tournamentId)) {
+            throw new IllegalArgumentException("Sponsor does not belong to the specified tournament");
+        }
+        sponsor.setName(request.getName());
+        sponsor.setPersonName(request.getPersonName());
+        sponsor.setPersonImageUrl(request.getPersonImageUrl());
+        Sponsor updated = sponsorRepository.save(sponsor);
+        return toResponse(updated);
+    }
+
+    /**
+     * Delete a sponsor from a tournament.
+     * Only the tournament owner can delete sponsors.
+     */
+    @Transactional
+    public void deleteSponsor(Long tournamentId, Long sponsorId, User user) {
+        tournamentService.findAndVerifyOwner(tournamentId, user);
+        Sponsor sponsor = sponsorRepository.findById(sponsorId)
+                .orElseThrow(() -> new IllegalArgumentException("Sponsor not found: " + sponsorId));
+        if (!sponsor.getTournament().getId().equals(tournamentId)) {
+            throw new IllegalArgumentException("Sponsor does not belong to the specified tournament");
+        }
+        sponsorRepository.delete(sponsor);
+    }
 }
-
-

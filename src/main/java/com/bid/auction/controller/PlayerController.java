@@ -140,9 +140,49 @@ public class PlayerController {
                 .body(auctionPlayerService.promoteToAuction(id, request, currentUser(auth)));
     }
 
+    /**
+     * Delete a specific list of players for a tournament.
+     * Only the tournament owner can perform this action.
+     * If a player was SOLD to a team, the sold price is refunded to that team's purse
+     * and all related auction values are recalculated.
+     * Players not found or belonging to a different tournament are skipped.
+     */
+    @DeleteMapping("/tournaments/{tournamentId}/players/bulk")
+    public ResponseEntity<Map<String, Object>> deleteMultiplePlayers(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody BulkPlayerActionRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(playerService.deleteBulk(tournamentId, request.getPlayerIds(), currentUser(auth)));
+    }
+
+    /**
+     * Delete all players for a tournament, and reset all related auction and team purse data.
+     * Only the tournament owner can perform this action.
+     */
+    @DeleteMapping("/tournaments/{tournamentId}/players")
+    public ResponseEntity<Void> deleteAllPlayersByTournament(
+            @PathVariable Long tournamentId,
+            Authentication auth) {
+        playerService.deleteAllByTournament(tournamentId, currentUser(auth));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Bulk register players for a tournament.
+     * Only the tournament owner can perform this action.
+     * Accepts a list of PlayerRegisterRequest and returns a list of PlayerResponse.
+     */
+    @PostMapping("/tournaments/{tournamentId}/players/bulk")
+    public ResponseEntity<List<PlayerResponse>> bulkRegister(
+            @PathVariable Long tournamentId,
+            @Valid @RequestBody List<PlayerRegisterRequest> requests,
+            Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(playerService.bulkRegister(tournamentId, requests, currentUser(auth)));
+    }
+
 
     private User currentUser(Authentication auth) {
         return authService.getUserByEmail(auth.getName());
     }
 }
-

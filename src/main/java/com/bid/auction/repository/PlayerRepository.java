@@ -17,8 +17,13 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     long countByTournamentId(Long tournamentId);
     long countByTournamentAndStatus(Tournament tournament, PlayerStatus status);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Player p SET p.status = :status WHERE p.id = :id")
     void updateStatusById(@Param("id") Long id, @Param("status") PlayerStatus status);
+
+    /** Bulk-reset status for multiple players in one shot (used by auction reset). */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Player p SET p.status = :status WHERE p.id IN :ids")
+    void updateStatusByIds(@Param("ids") List<Long> ids, @Param("status") PlayerStatus status);
 }
 

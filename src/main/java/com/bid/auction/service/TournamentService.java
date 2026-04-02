@@ -9,6 +9,8 @@ import com.bid.auction.exception.ResourceNotFoundException;
 import com.bid.auction.repository.IncrementRuleRepository;
 import com.bid.auction.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,13 @@ public class TournamentService {
     private final TournamentRepository tournamentRepository;
     private final TeamPurseService teamPurseService;
     private final IncrementRuleRepository incrementRuleRepository;
+
+    /**
+     * Injected lazily to break the circular dependency:
+     * TournamentService → AuctionPlayerService → TournamentService
+     */
+    @Autowired @Lazy
+    private AuctionPlayerService auctionPlayerService;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<TournamentResponse> getAll(User user) {
@@ -67,8 +76,15 @@ public class TournamentService {
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
+    @Transactional
     public TournamentResponse update(Long id, TournamentRequest req, User user) {
         Tournament t = findAndVerifyOwner(id, user);
+
+        // Capture current values of fields that affect the auction before overwriting them
+        Long oldBasePrice      = t.getBasePrice();
+        Long oldInitIncrement  = t.getInitialIncrement();
+        Integer oldPlayersPerTeam = t.getPlayersPerTeam();
+        Long oldPurseAmount    = t.getPurseAmount();
 
         t.setName(req.getName());
         t.setDate(req.getDate());
@@ -91,8 +107,26 @@ public class TournamentService {
 
         Tournament updatedTournament = tournamentRepository.save(t);
 
-        // Recalculate all team purses if financial details changed
-        teamPurseService.recalculateAllTeamPurses(updatedTournament);
+        // Determine whether any auction-critical field actually changed BEFORE
+        // touching team purses, so we can choose the right code path below.
+        boolean auctionFieldChanged =
+                !java.util.Objects.equals(req.getBasePrice(),       oldBasePrice)      ||
+                !java.util.Objects.equals(req.getInitialIncrement(), oldInitIncrement) ||
+                !java.util.Objects.equals(req.getPlayersPerTeam(),  oldPlayersPerTeam) ||
+                !java.util.Objects.equals(req.getPurseAmount(),     oldPurseAmount);
+
+        if (auctionFieldChanged) {
+            // Full reset: wipes all auction players, resets player statuses, and
+            // re-initialises every team purse from scratch with the new settings.
+            // This makes a preceding recalculateAllTeamPurses call unnecessary —
+            // calling both in the same transaction was the root cause of detached-
+            // entity / stale-JPA-cache bugs in the previous implementation.
+            auctionPlayerService.resetEntireAuctionInternal(updatedTournament);
+        } else {
+            // No auction reset needed — just re-crunch the purse figures so they
+            // reflect any non-critical changes (e.g. name, date, sport).
+            teamPurseService.recalculateAllTeamPurses(updatedTournament);
+        }
 
         return toResponse(updatedTournament);
     }

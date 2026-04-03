@@ -29,6 +29,16 @@ public class PlayerService {
     public List<PlayerResponse> bulkRegister(Long tournamentId, List<PlayerRegisterRequest> reqs, User user) {
         tournamentService.findAndVerifyOwner(tournamentId, user);
         Tournament tournament = tournamentService.findById(tournamentId);
+
+        // Enforce bulk limit: max 30 players per request,
+        // unless the tournament's teamAllowed is >= 3 (unrestricted mode).
+        Integer teamAllowed = tournament.getTeamAllowed();
+        if ((teamAllowed == null || teamAllowed < 3) && reqs.size() > 30) {
+            throw new IllegalArgumentException(
+                    "Bulk registration is limited to 30 players at a time. " +
+                    "Received: " + reqs.size());
+        }
+
         long count = playerRepository.countByTournamentId(tournamentId);
         int[] idx = {0};
         return reqs.stream().map(req -> {
@@ -73,6 +83,10 @@ public class PlayerService {
     // ── Public self-registration ──────────────────────────────────────────────
     public PlayerResponse register(Long tournamentId, PlayerRegisterRequest req) {
         Tournament tournament = tournamentService.findById(tournamentId);
+
+        if (Boolean.FALSE.equals(tournament.getPlayerRegistrationOpen())) {
+            throw new IllegalArgumentException("Player registration is closed for this tournament.");
+        }
 
         long count = playerRepository.countByTournamentId(tournamentId);
         String playerNumber = String.format("P%03d", count + 1);

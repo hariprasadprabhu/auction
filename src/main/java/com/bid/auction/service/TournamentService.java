@@ -69,6 +69,7 @@ public class TournamentService {
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
                 .logo(req.getLogo())
                 .paymentProofRequired(req.getPaymentProofRequired())
+                .playerRegistrationOpen(req.getPlayerRegistrationOpen() != null ? req.getPlayerRegistrationOpen() : true)
                 .createdBy(user)
                 .build();
 
@@ -85,6 +86,22 @@ public class TournamentService {
         Long oldInitIncrement  = t.getInitialIncrement();
         Integer oldPlayersPerTeam = t.getPlayersPerTeam();
         Long oldPurseAmount    = t.getPurseAmount();
+
+        // ── Auction-date edit-limit enforcement ───────────────────────────────
+        // The date field (tournament / auction date) may be changed at most once
+        // after creation.  canEditAuctionDate starts as true (creation = edit #1).
+        // The first post-creation change consumes that allowance (sets flag false).
+        // Any further attempt to change the date is rejected.
+        boolean auctionDateChanging = !java.util.Objects.equals(req.getDate(), t.getDate());
+        if (auctionDateChanging) {
+            if (Boolean.FALSE.equals(t.getCanEditAuctionDate())) {
+                throw new IllegalStateException(
+                        "Auction date has already been modified once and cannot be changed again.");
+            }
+            // Consume the one allowed post-creation edit
+            t.setCanEditAuctionDate(false);
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         t.setName(req.getName());
         t.setDate(req.getDate());
@@ -103,6 +120,9 @@ public class TournamentService {
         }
         if (req.getPaymentProofRequired() != null) {
             t.setPaymentProofRequired(req.getPaymentProofRequired());
+        }
+        if (req.getPlayerRegistrationOpen() != null) {
+            t.setPlayerRegistrationOpen(req.getPlayerRegistrationOpen());
         }
 
         Tournament updatedTournament = tournamentRepository.save(t);
@@ -129,6 +149,14 @@ public class TournamentService {
         }
 
         return toResponse(updatedTournament);
+    }
+
+    // ── Toggle player registration ────────────────────────────────────────────
+    @Transactional
+    public TournamentResponse setPlayerRegistrationOpen(Long id, boolean open, User user) {
+        Tournament t = findAndVerifyOwner(id, user);
+        t.setPlayerRegistrationOpen(open);
+        return toResponse(tournamentRepository.save(t));
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -184,6 +212,8 @@ public class TournamentService {
                 .initialIncrement(t.getInitialIncrement())
                 .logoUrl(t.getLogo())
                 .paymentProofRequired(t.getPaymentProofRequired())
+                .canEditAuctionDate(t.getCanEditAuctionDate())
+                .playerRegistrationOpen(t.getPlayerRegistrationOpen())
                 .build();
     }
 }

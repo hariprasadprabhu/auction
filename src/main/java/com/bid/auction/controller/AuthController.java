@@ -60,4 +60,26 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/refresh")
+    @Operation(
+        summary = "Refresh access token",
+        description = "Send the current (possibly expired) Bearer token in the Authorization header to receive a new one."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "New token issued",
+            content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Missing or malformed Authorization header"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<AuthResponse> refresh(
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String token = authHeader.substring(7);
+        return ResponseEntity.ok(authService.refreshAccessToken(token));
+    }
 }

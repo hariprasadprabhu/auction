@@ -41,6 +41,34 @@ public class TournamentController {
         return ResponseEntity.ok(tournamentService.getPublicDetails(id));
     }
 
+    /**
+     * Public endpoint for the player registration page.
+     * Returns tournament details including the {@code playerRegistrationOpen} flag so the
+     * frontend can show "registration is closed" when {@code false}.
+     * No authentication required.
+     */
+    @GetMapping("/{id}/registration")
+    public ResponseEntity<TournamentResponse> getRegistrationInfo(@PathVariable Long id) {
+        return ResponseEntity.ok(tournamentService.getPublicDetails(id));
+    }
+
+    /**
+     * Toggle player self-registration open/closed for this tournament.
+     * Only the tournament owner can call this endpoint.
+     * Body: {@code { "playerRegistrationOpen": true | false }}
+     */
+    @PatchMapping("/{id}/registration")
+    public ResponseEntity<TournamentResponse> setRegistrationOpen(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Boolean> body,
+            Authentication auth) {
+        Boolean open = body.get("playerRegistrationOpen");
+        if (open == null) {
+            throw new IllegalArgumentException("Field 'playerRegistrationOpen' is required.");
+        }
+        return ResponseEntity.ok(tournamentService.setPlayerRegistrationOpen(id, open, currentUser(auth)));
+    }
+
     @PostMapping
     public ResponseEntity<TournamentResponse> create(
             @Valid @RequestBody TournamentRequest request,

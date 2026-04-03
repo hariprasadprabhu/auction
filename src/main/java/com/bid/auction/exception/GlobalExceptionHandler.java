@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -61,6 +62,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(errorBody("UNAUTHORIZED", ex.getMessage()));
+    }
+
+    // ── 400 – Business State Violations ──────────────────────────────────────
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleBadState(IllegalStateException ex) {
+        return ResponseEntity.badRequest()
+                .body(errorBody("BAD_REQUEST", ex.getMessage()));
+    }
+
+    // ── 405 – Method Not Allowed ──────────────────────────────────────────────
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotAllowed(
+            HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(errorBody("METHOD_NOT_ALLOWED", ex.getMessage()));
     }
 
     // ── 500 ──────────────────────────────────────────────────────────────────

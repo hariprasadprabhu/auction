@@ -68,6 +68,29 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Accepts the current (possibly expired) JWT from the Authorization header,
+     * extracts the user, and issues a brand-new access token.
+     */
+    public AuthResponse refreshAccessToken(String expiredToken) {
+        String email = jwtUtils.extractUsernameIgnoreExpiry(expiredToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        String newToken = jwtUtils.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(newToken)
+                .type("Bearer")
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
@@ -82,4 +105,3 @@ public class AuthService {
                 .build();
     }
 }
-

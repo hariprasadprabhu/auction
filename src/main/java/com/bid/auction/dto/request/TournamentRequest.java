@@ -48,5 +48,11 @@ public class TournamentRequest {
     private String logo;
 
     private Boolean paymentProofRequired;
+
+    /**
+     * Whether player self-registration is open for this tournament.
+     * Defaults to {@code true} on creation if not specified.
+     */
+    private Boolean playerRegistrationOpen;
 }
 

@@ -65,6 +65,7 @@ public class AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 
@@ -88,6 +89,7 @@ public class AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 
@@ -96,12 +98,17 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
     }
 
+    public UserResponse getUserResponseByEmail(String email) {
+        return toUserResponse(getUserByEmail(email));
+    }
+
     private UserResponse toUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 }

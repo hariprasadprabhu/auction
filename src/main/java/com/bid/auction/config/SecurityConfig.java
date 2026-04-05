@@ -51,8 +51,13 @@ public class SecurityConfig {
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**"
                         ).permitAll()
-                        // Public auth endpoints (both /auth/** and /api/auth/** due to context-path)
-                        .requestMatchers("/auth/**", "/api/auth/**").permitAll()
+                        // Public auth endpoints (register / login / refresh only)
+                        .requestMatchers(
+                                "/auth/register",  "/api/auth/register",
+                                "/auth/login",     "/api/auth/login",
+                                "/auth/refresh",   "/api/auth/refresh"
+                        ).permitAll()
+                        // /auth/me and /auth/email/** require a valid JWT (fall through to anyRequest)
                         // Public tournament details (for registration page)
                         .requestMatchers(HttpMethod.GET, "/tournaments/*/public", "/api/tournaments/*/public").permitAll()
                         // Public player self-registration

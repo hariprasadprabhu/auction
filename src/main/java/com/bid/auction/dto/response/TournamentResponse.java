@@ -42,5 +42,11 @@ public class TournamentResponse {
      * {@code true} = players can register; {@code false} = registration is closed.
      */
     private Boolean playerRegistrationOpen;
+
+    /**
+     * Per-field mandatory configuration for player registration.
+     * Tells the frontend which fields to mark as required on the registration form.
+     */
+    private RegistrationConfigResponse registrationConfig;
 }
 

@@ -64,11 +64,11 @@ public class GlobalExceptionHandler {
                 .body(errorBody("UNAUTHORIZED", ex.getMessage()));
     }
 
-    // ── 400 – Business State Violations ──────────────────────────────────────
+    // ── 409 – Conflict / Business State Violations ───────────────────────────
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleBadState(IllegalStateException ex) {
-        return ResponseEntity.badRequest()
-                .body(errorBody("BAD_REQUEST", ex.getMessage()));
+    public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody("CONFLICT", ex.getMessage()));
     }
 
     // ── 405 – Method Not Allowed ──────────────────────────────────────────────

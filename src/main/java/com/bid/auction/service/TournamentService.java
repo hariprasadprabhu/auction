@@ -1,7 +1,9 @@
 package com.bid.auction.service;
 
 import com.bid.auction.dto.request.TournamentRequest;
+import com.bid.auction.dto.request.RegistrationConfigRequest;
 import com.bid.auction.dto.response.TournamentResponse;
+import com.bid.auction.dto.response.RegistrationConfigResponse;
 import com.bid.auction.entity.Tournament;
 import com.bid.auction.entity.User;
 import com.bid.auction.enums.TournamentStatus;
@@ -159,6 +161,48 @@ public class TournamentService {
         return toResponse(tournamentRepository.save(t));
     }
 
+    // ── Registration field config ─────────────────────────────────────────────
+
+    /**
+     * Public (no auth) – used by the player registration form to know which
+     * fields are mandatory before the player submits.
+     */
+    public RegistrationConfigResponse getRegistrationConfigPublic(Long id) {
+        Tournament t = findById(id);
+        return toConfigResponse(t);
+    }
+
+    /** GET /tournaments/{id}/registration-config  (owner-only) */
+    public RegistrationConfigResponse getRegistrationConfig(Long id, User user) {
+        Tournament t = findAndVerifyOwner(id, user);
+        return toConfigResponse(t);
+    }
+
+    /** PATCH /tournaments/{id}/registration-config  (owner-only) */
+    @Transactional
+    public RegistrationConfigResponse updateRegistrationConfig(Long id, RegistrationConfigRequest req, User user) {
+        Tournament t = findAndVerifyOwner(id, user);
+
+        if (req.getRequireLastName()         != null) t.setRegRequireLastName(req.getRequireLastName());
+        if (req.getRequireDob()              != null) t.setRegRequireDob(req.getRequireDob());
+        if (req.getRequirePhoto()            != null) t.setRegRequirePhoto(req.getRequirePhoto());
+        if (req.getRequirePaymentProof()     != null) {
+            t.setPaymentProofRequired(req.getRequirePaymentProof());
+        }
+        if (req.getRequireMobileNumber()     != null) t.setRegRequireMobileNumber(req.getRequireMobileNumber());
+        if (req.getRequireHandedness()       != null) t.setRegRequireHandedness(req.getRequireHandedness());
+        if (req.getRequireTshirtSize()       != null) t.setRegRequireTshirtSize(req.getRequireTshirtSize());
+        if (req.getRequireTrouserSize()      != null) t.setRegRequireTrouserSize(req.getRequireTrouserSize());
+        if (req.getRequireJerseyNumber()     != null) t.setRegRequireJerseyNumber(req.getRequireJerseyNumber());
+        if (req.getRequireSleeveType()       != null) t.setRegRequireSleeveType(req.getRequireSleeveType());
+        if (req.getRequirePlayerLocation()   != null) t.setRegRequirePlayerLocation(req.getRequirePlayerLocation());
+        if (req.getRequireLastSeasonPlayed() != null) t.setRegRequireLastSeasonPlayed(req.getRequireLastSeasonPlayed());
+        if (req.getRequireLastSeasonTeam()   != null) t.setRegRequireLastSeasonTeam(req.getRequireLastSeasonTeam());
+        if (req.getRequireBowlingStyle()     != null) t.setRegRequireBowlingStyle(req.getRequireBowlingStyle());
+
+        return toConfigResponse(tournamentRepository.save(t));
+    }
+
     // ── Delete ────────────────────────────────────────────────────────────────
     @Transactional
     public void delete(Long id, User user) {
@@ -214,6 +258,26 @@ public class TournamentService {
                 .paymentProofRequired(t.getPaymentProofRequired())
                 .canEditAuctionDate(t.getCanEditAuctionDate())
                 .playerRegistrationOpen(t.getPlayerRegistrationOpen())
+                .registrationConfig(toConfigResponse(t))
+                .build();
+    }
+
+    private RegistrationConfigResponse toConfigResponse(Tournament t) {
+        return RegistrationConfigResponse.builder()
+                .requireLastName(Boolean.TRUE.equals(t.getRegRequireLastName()))
+                .requireDob(Boolean.TRUE.equals(t.getRegRequireDob()))
+                .requirePhoto(Boolean.TRUE.equals(t.getRegRequirePhoto()))
+                .requirePaymentProof(Boolean.TRUE.equals(t.getPaymentProofRequired()))
+                .requireMobileNumber(Boolean.TRUE.equals(t.getRegRequireMobileNumber()))
+                .requireHandedness(Boolean.TRUE.equals(t.getRegRequireHandedness()))
+                .requireTshirtSize(Boolean.TRUE.equals(t.getRegRequireTshirtSize()))
+                .requireTrouserSize(Boolean.TRUE.equals(t.getRegRequireTrouserSize()))
+                .requireJerseyNumber(Boolean.TRUE.equals(t.getRegRequireJerseyNumber()))
+                .requireSleeveType(Boolean.TRUE.equals(t.getRegRequireSleeveType()))
+                .requirePlayerLocation(Boolean.TRUE.equals(t.getRegRequirePlayerLocation()))
+                .requireLastSeasonPlayed(Boolean.TRUE.equals(t.getRegRequireLastSeasonPlayed()))
+                .requireLastSeasonTeam(Boolean.TRUE.equals(t.getRegRequireLastSeasonTeam()))
+                .requireBowlingStyle(Boolean.TRUE.equals(t.getRegRequireBowlingStyle()))
                 .build();
     }
 }

@@ -70,7 +70,23 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
+  # ── Email (SMTP) ─────────────────────────────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        debug: false
+
 app:
+  name: ${APP_NAME:AuctionDeck}
   jwt:
     secret: ${JWT_SECRET:YourSuperSecretKeyHereMustBeAtLeast256BitsLongForHmacSha256!!}
     expiration: ${JWT_EXPIRATION:86400000}

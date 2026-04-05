@@ -1,7 +1,9 @@
 package com.bid.auction.controller;
 
 import com.bid.auction.dto.request.TournamentRequest;
+import com.bid.auction.dto.request.RegistrationConfigRequest;
 import com.bid.auction.dto.response.TournamentResponse;
+import com.bid.auction.dto.response.RegistrationConfigResponse;
 import com.bid.auction.entity.User;
 import com.bid.auction.service.AuthService;
 import com.bid.auction.service.TournamentService;
@@ -83,6 +85,35 @@ public class TournamentController {
             @Valid @RequestBody TournamentRequest request,
             Authentication auth) {
         return ResponseEntity.ok(tournamentService.update(id, request, currentUser(auth)));
+    }
+
+    /**
+     * PUBLIC — no authentication required.
+     * Returns which player-registration fields are mandatory for this tournament.
+     * Used by the registration form to know which fields to mark as required.
+     *
+     * GET /tournaments/{id}/registration-config
+     */
+    @GetMapping("/{id}/registration-config")
+    public ResponseEntity<RegistrationConfigResponse> getRegistrationConfigPublic(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(tournamentService.getRegistrationConfigPublic(id));
+    }
+
+    /**
+     * Update which player-registration fields are mandatory for this tournament.
+     * Send only the fields you want to change — omitted fields are left unchanged.
+     * Only the tournament owner can call this.
+     *
+     * PATCH /tournaments/{id}/registration-config
+     * Body: { "requireMobileNumber": true, "requireDob": true }
+     */
+    @PatchMapping("/{id}/registration-config")
+    public ResponseEntity<RegistrationConfigResponse> updateRegistrationConfig(
+            @PathVariable Long id,
+            @RequestBody RegistrationConfigRequest request,
+            Authentication auth) {
+        return ResponseEntity.ok(tournamentService.updateRegistrationConfig(id, request, currentUser(auth)));
     }
 
     @DeleteMapping("/{id}")

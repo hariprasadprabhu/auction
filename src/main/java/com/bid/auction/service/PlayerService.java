@@ -52,6 +52,16 @@ public class PlayerService {
                     .role(req.getRole())
                     .photo(req.getPhoto())
                     .paymentProof(req.getPaymentProof())
+                    .mobileNumber(req.getMobileNumber())
+                    .handedness(req.getHandedness())
+                    .tshirtSize(req.getTshirtSize())
+                    .trouserSize(req.getTrouserSize())
+                    .jerseyNumber(req.getJerseyNumber())
+                    .sleeveType(req.getSleeveType())
+                    .playerLocation(req.getPlayerLocation())
+                    .lastSeasonPlayed(req.getLastSeasonPlayed())
+                    .lastSeasonTeam(req.getLastSeasonTeam())
+                    .bowlingStyle(req.getBowlingStyle())
                     .status(PlayerStatus.PENDING)
                     .tournament(tournament)
                     .build();
@@ -88,6 +98,9 @@ public class PlayerService {
             throw new IllegalArgumentException("Player registration is closed for this tournament.");
         }
 
+        // ── Enforce per-tournament mandatory field config ─────────────────────
+        validateMandatoryFields(req, tournament);
+
         long count = playerRepository.countByTournamentId(tournamentId);
         String playerNumber = String.format("P%03d", count + 1);
 
@@ -99,6 +112,16 @@ public class PlayerService {
                 .role(req.getRole())
                 .photo(req.getPhoto())
                 .paymentProof(req.getPaymentProof())
+                .mobileNumber(req.getMobileNumber())
+                .handedness(req.getHandedness())
+                .tshirtSize(req.getTshirtSize())
+                .trouserSize(req.getTrouserSize())
+                .jerseyNumber(req.getJerseyNumber())
+                .sleeveType(req.getSleeveType())
+                .playerLocation(req.getPlayerLocation())
+                .lastSeasonPlayed(req.getLastSeasonPlayed())
+                .lastSeasonTeam(req.getLastSeasonTeam())
+                .bowlingStyle(req.getBowlingStyle())
                 .status(PlayerStatus.PENDING)
                 .tournament(tournament)
                 .build();
@@ -120,6 +143,16 @@ public class PlayerService {
         if (req.getPhoto() != null && !req.getPhoto().isEmpty()) player.setPhoto(req.getPhoto());
         if (req.getPaymentProof() != null && !req.getPaymentProof().isEmpty()) 
             player.setPaymentProof(req.getPaymentProof());
+        if (req.getMobileNumber() != null) player.setMobileNumber(req.getMobileNumber());
+        if (req.getHandedness() != null) player.setHandedness(req.getHandedness());
+        if (req.getTshirtSize() != null) player.setTshirtSize(req.getTshirtSize());
+        if (req.getTrouserSize() != null) player.setTrouserSize(req.getTrouserSize());
+        if (req.getJerseyNumber() != null) player.setJerseyNumber(req.getJerseyNumber());
+        if (req.getSleeveType() != null) player.setSleeveType(req.getSleeveType());
+        if (req.getPlayerLocation() != null) player.setPlayerLocation(req.getPlayerLocation());
+        if (req.getLastSeasonPlayed() != null) player.setLastSeasonPlayed(req.getLastSeasonPlayed());
+        if (req.getLastSeasonTeam() != null) player.setLastSeasonTeam(req.getLastSeasonTeam());
+        if (req.getBowlingStyle() != null) player.setBowlingStyle(req.getBowlingStyle());
 
         Player saved = playerRepository.save(player);
         auctionPlayerService.syncFromPlayer(saved);   // propagate to AuctionPlayer
@@ -324,6 +357,74 @@ public class PlayerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + id));
     }
 
+    /**
+     * Validates that all fields marked mandatory in the tournament's registration
+     * config are present in the incoming request. Throws {@link IllegalArgumentException}
+     * listing every missing field.
+     */
+    private void validateMandatoryFields(PlayerRegisterRequest req, com.bid.auction.entity.Tournament t) {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+
+        if (Boolean.TRUE.equals(t.getRegRequireLastName())
+                && (req.getLastName() == null || req.getLastName().isBlank()))
+            missing.add("lastName");
+
+        if (Boolean.TRUE.equals(t.getRegRequireDob()) && req.getDob() == null)
+            missing.add("dob");
+
+        if (Boolean.TRUE.equals(t.getRegRequirePhoto())
+                && (req.getPhoto() == null || req.getPhoto().isBlank()))
+            missing.add("photo");
+
+        if (Boolean.TRUE.equals(t.getPaymentProofRequired())
+                && (req.getPaymentProof() == null || req.getPaymentProof().isBlank()))
+            missing.add("paymentProof");
+
+        if (Boolean.TRUE.equals(t.getRegRequireMobileNumber())
+                && (req.getMobileNumber() == null || req.getMobileNumber().isBlank()))
+            missing.add("mobileNumber");
+
+        if (Boolean.TRUE.equals(t.getRegRequireHandedness())
+                && (req.getHandedness() == null || req.getHandedness().isBlank()))
+            missing.add("handedness");
+
+        if (Boolean.TRUE.equals(t.getRegRequireTshirtSize())
+                && (req.getTshirtSize() == null || req.getTshirtSize().isBlank()))
+            missing.add("tshirtSize");
+
+        if (Boolean.TRUE.equals(t.getRegRequireTrouserSize())
+                && (req.getTrouserSize() == null || req.getTrouserSize().isBlank()))
+            missing.add("trouserSize");
+
+        if (Boolean.TRUE.equals(t.getRegRequireJerseyNumber())
+                && (req.getJerseyNumber() == null || req.getJerseyNumber().isBlank()))
+            missing.add("jerseyNumber");
+
+        if (Boolean.TRUE.equals(t.getRegRequireSleeveType())
+                && (req.getSleeveType() == null || req.getSleeveType().isBlank()))
+            missing.add("sleeveType");
+
+        if (Boolean.TRUE.equals(t.getRegRequirePlayerLocation())
+                && (req.getPlayerLocation() == null || req.getPlayerLocation().isBlank()))
+            missing.add("playerLocation");
+
+        if (Boolean.TRUE.equals(t.getRegRequireLastSeasonPlayed()) && req.getLastSeasonPlayed() == null)
+            missing.add("lastSeasonPlayed");
+
+        if (Boolean.TRUE.equals(t.getRegRequireLastSeasonTeam())
+                && (req.getLastSeasonTeam() == null || req.getLastSeasonTeam().isBlank()))
+            missing.add("lastSeasonTeam");
+
+        if (Boolean.TRUE.equals(t.getRegRequireBowlingStyle())
+                && (req.getBowlingStyle() == null || req.getBowlingStyle().isBlank()))
+            missing.add("bowlingStyle");
+
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "The following fields are required for this tournament: " + String.join(", ", missing));
+        }
+    }
+
     public PlayerResponse toResponse(Player p) {
         return PlayerResponse.builder()
                 .id(p.getId())
@@ -336,6 +437,16 @@ public class PlayerService {
                 .tournamentId(p.getTournament().getId())
                 .photoUrl(p.getPhoto())
                 .paymentProofUrl(p.getPaymentProof())
+                .mobileNumber(p.getMobileNumber())
+                .handedness(p.getHandedness())
+                .tshirtSize(p.getTshirtSize())
+                .trouserSize(p.getTrouserSize())
+                .jerseyNumber(p.getJerseyNumber())
+                .sleeveType(p.getSleeveType())
+                .playerLocation(p.getPlayerLocation())
+                .lastSeasonPlayed(p.getLastSeasonPlayed())
+                .lastSeasonTeam(p.getLastSeasonTeam())
+                .bowlingStyle(p.getBowlingStyle())
                 .build();
     }
 }

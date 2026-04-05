@@ -48,6 +48,63 @@ public class Tournament {
     @Column(name = "payment_proof_required")
     private Boolean paymentProofRequired;
 
+    // ── Player registration field config ──────────────────────────────────────
+    // Each flag controls whether that field is MANDATORY during player registration.
+    // All default to false (optional). Tournament owner can update via
+    // PUT /tournaments/{id}/registration-config
+
+    @Column(name = "reg_require_last_name", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireLastName = false;
+
+    @Column(name = "reg_require_dob", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireDob = false;
+
+    @Column(name = "reg_require_photo", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequirePhoto = false;
+
+    @Column(name = "reg_require_mobile_number", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireMobileNumber = false;
+
+    @Column(name = "reg_require_handedness", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireHandedness = false;
+
+    @Column(name = "reg_require_tshirt_size", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireTshirtSize = false;
+
+    @Column(name = "reg_require_trouser_size", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireTrouserSize = false;
+
+    @Column(name = "reg_require_jersey_number", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireJerseyNumber = false;
+
+    @Column(name = "reg_require_sleeve_type", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireSleeveType = false;
+
+    @Column(name = "reg_require_player_location", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequirePlayerLocation = false;
+
+    @Column(name = "reg_require_last_season_played", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireLastSeasonPlayed = false;
+
+    @Column(name = "reg_require_last_season_team", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireLastSeasonTeam = false;
+
+    @Column(name = "reg_require_bowling_style", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean regRequireBowlingStyle = false;
+
     /**
      * Controls whether players can self-register for this tournament.
      * Set to {@code true} by default on creation.

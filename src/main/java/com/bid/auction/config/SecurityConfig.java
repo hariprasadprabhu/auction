@@ -53,9 +53,12 @@ public class SecurityConfig {
                         ).permitAll()
                         // Public auth endpoints (register / login / refresh only)
                         .requestMatchers(
-                                "/auth/register",  "/api/auth/register",
-                                "/auth/login",     "/api/auth/login",
-                                "/auth/refresh",   "/api/auth/refresh"
+                                "/auth/register",                "/api/auth/register",
+                                "/auth/login",                   "/api/auth/login",
+                                "/auth/refresh",                 "/api/auth/refresh",
+                                "/auth/password/send-otp",       "/api/auth/password/send-otp",
+                                "/auth/password/verify-otp",     "/api/auth/password/verify-otp",
+                                "/auth/password/reset",          "/api/auth/password/reset"
                         ).permitAll()
                         // /auth/me and /auth/email/** require a valid JWT (fall through to anyRequest)
                         // Public tournament details (for registration page)

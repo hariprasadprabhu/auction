@@ -93,6 +93,25 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Generates a fresh JWT and returns an {@link AuthResponse} for the given user.
+     * Used by {@code EmailVerificationService} after OTP verification so the caller
+     * gets a usable token without having to log in again.
+     */
+    public AuthResponse generateAuthResponse(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtils.generateToken(userDetails);
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
+                .build();
+    }
+
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));

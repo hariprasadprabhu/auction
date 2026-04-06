@@ -73,16 +73,15 @@ spring:
   # ── Email (SMTP) ─────────────────────────────────────────────────────────
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
+    port: ${MAIL_PORT:465}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
-            enable: true
-            required: true
+          ssl:
+            enable: true        # port 465 uses implicit SSL (not STARTTLS)
           connectiontimeout: 5000   # 5s to establish TCP connection
           timeout: 10000            # 10s for socket read
           writetimeout: 10000       # 10s for socket write

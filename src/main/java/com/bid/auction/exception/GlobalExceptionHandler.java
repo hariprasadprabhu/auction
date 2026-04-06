@@ -3,6 +3,7 @@ package com.bid.auction.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -77,6 +78,14 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(errorBody("METHOD_NOT_ALLOWED", ex.getMessage()));
+    }
+
+    // ── 503 – Email delivery failure ──────────────────────────────────────────
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<Map<String, Object>> handleMailFailure(MailException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(errorBody("EMAIL_SERVICE_UNAVAILABLE",
+                        "We could not send the email at this time. Please try again in a moment."));
     }
 
     // ── 500 ──────────────────────────────────────────────────────────────────

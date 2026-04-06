@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
@@ -69,6 +70,12 @@ public class DatabaseRetryAspect {
                 
             } catch (SQLException | TimeoutException | RuntimeException e) {
                 attempt++;
+
+                // Mail failures are not DB errors — never retry them.
+                if (e instanceof MailException || isCausedBy(e, MailException.class)) {
+                    throw e;
+                }
+
                 circuitBreaker.recordFailure();
                 
                 // Check if it's a connection pool exhaustion error
@@ -100,22 +107,34 @@ public class DatabaseRetryAspect {
     }
 
     /**
-     * Determine if error is related to connection pool exhaustion
+     * Determine if error is related to DB connection pool exhaustion.
+     * Deliberately narrow — must mention Hikari/JDBC/pool keywords to avoid
+     * matching SMTP "connection" errors.
      */
     private boolean isConnectionPoolError(Throwable e) {
         String message = e.getMessage();
         if (message == null) {
             return false;
         }
-
         message = message.toLowerCase();
-        
-        return message.contains("timeout")
-            || message.contains("connection")
-            || message.contains("pool")
-            || message.contains("hikari")
-            || message.contains("busy")
-            || message.contains("exhausted");
+        return message.contains("hikari")
+            || message.contains("connection pool")
+            || message.contains("pool exhausted")
+            || message.contains("unable to acquire jdbc")
+            || message.contains("jdbc connection")
+            || message.contains("datasource")
+            || (message.contains("timeout") && (
+                   message.contains("jdbc") || message.contains("pool") || message.contains("hikari")));
+    }
+
+    /** Walk the cause chain looking for a specific exception type. */
+    private boolean isCausedBy(Throwable e, Class<?> type) {
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (type.isInstance(cause)) return true;
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     /**

@@ -14,6 +14,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -105,9 +107,20 @@ public class EmailVerificationService {
                 .build();
 
         tokenRepository.save(token);
-        log.info("OTP generated and sent to {} for user {}", targetEmail, user.getId());
+        log.info("OTP generated and will be sent to {} for user {}", targetEmail, user.getId());
 
-        sendOtpEmail(targetEmail, user.getName(), plainOtp);
+        // Send email AFTER the transaction commits so the DB connection is
+        // released before blocking on the SMTP call.
+        final String finalTargetEmail = targetEmail;
+        final String finalName = user.getName();
+        final String finalOtp = plainOtp;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendOtpEmail(finalTargetEmail, finalName, finalOtp);
+                log.info("OTP sent to {} for user {}", finalTargetEmail, user.getId());
+            }
+        });
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -192,9 +205,19 @@ public class EmailVerificationService {
                 .build();
 
         tokenRepository.save(token);
-        log.info("Password reset OTP generated and sent for {}", userEmail);
+        log.info("Password reset OTP generated for {}", userEmail);
 
-        sendPasswordResetOtpEmail(user.getEmail(), user.getName(), plainOtp);
+        // Send email AFTER commit — avoids holding the DB connection during SMTP.
+        final String finalEmail = user.getEmail();
+        final String finalName = user.getName();
+        final String finalOtp = plainOtp;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendPasswordResetOtpEmail(finalEmail, finalName, finalOtp);
+                log.info("Password reset OTP sent for {}", finalEmail);
+            }
+        });
     }
 
     /**

@@ -83,6 +83,9 @@ spring:
           starttls:
             enable: true
             required: true
+          connectiontimeout: 5000   # 5s to establish TCP connection
+          timeout: 10000            # 10s for socket read
+          writetimeout: 10000       # 10s for socket write
         debug: false
 
 app:

@@ -70,22 +70,15 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
-  # ── Email (SMTP) ─────────────────────────────────────────────────────────
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true        # port 465 uses implicit SSL (not STARTTLS)
-          connectiontimeout: 5000   # 5s to establish TCP connection
-          timeout: 10000            # 10s for socket read
-          writetimeout: 10000       # 10s for socket write
-        debug: false
+  # ── Email (Resend HTTP API – works on Railway/Render where SMTP is blocked) ─
+  # No spring.mail.* needed — email is sent via HTTPS, not SMTP.
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+
+# ── Resend – transactional email via HTTPS (no SMTP, works everywhere) ─────
+resend:
+  api-key: ${RESEND_API_KEY:}                    # set on Railway/Render
+  from: ${RESEND_FROM:noreply@bidplayers.in}     # must be a verified sender in Resend
 
 app:
   name: ${APP_NAME:AuctionDeck}

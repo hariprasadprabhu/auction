@@ -9,8 +9,6 @@ import com.bid.auction.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +29,9 @@ public class EmailVerificationService {
 
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository                   userRepository;
-    private final JavaMailSender                   mailSender;
+    private final ResendEmailService               emailService;   // ← Resend HTTP API
     private final PasswordEncoder                  passwordEncoder;
     private final AuthService                      authService;
-
-    @Value("${spring.mail.username}")
-    private String fromAddress;
 
     @Value("${app.name:Bid Players}")
     private String appName;
@@ -266,34 +261,26 @@ public class EmailVerificationService {
     }
 
     private void sendOtpEmail(String to, String name, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(to);
-        message.setSubject(appName + " – Email Verification Code");
-        message.setText(
+        String subject = appName + " – Email Verification Code";
+        String text =
                 "Hi " + name + ",\n\n" +
                 "Your " + appName + " email verification code is:\n\n" +
                 "    " + otp + "\n\n" +
                 "This code is valid for " + OTP_EXPIRY_MINUTES + " minutes.\n" +
                 "If you did not request this, please ignore this email.\n\n" +
-                "– The " + appName + " Team"
-        );
-        mailSender.send(message);
+                "– The " + appName + " Team";
+        emailService.sendText(to, subject, text);
     }
 
     private void sendPasswordResetOtpEmail(String to, String name, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(to);
-        message.setSubject(appName + " – Password Reset Code");
-        message.setText(
+        String subject = appName + " – Password Reset Code";
+        String text =
                 "Hi " + name + ",\n\n" +
                 "Your " + appName + " password reset code is:\n\n" +
                 "    " + otp + "\n\n" +
                 "This code is valid for " + OTP_EXPIRY_MINUTES + " minutes.\n" +
                 "If you did not request a password reset, please ignore this email.\n\n" +
-                "– The " + appName + " Team"
-        );
-        mailSender.send(message);
+                "– The " + appName + " Team";
+        emailService.sendText(to, subject, text);
     }
 }

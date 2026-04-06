@@ -1,11 +1,11 @@
 package com.bid.auction.aspect;
 
+import com.bid.auction.exception.EmailDeliveryException;
 import com.bid.auction.util.DatabaseCircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.mail.MailException;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
@@ -71,8 +71,8 @@ public class DatabaseRetryAspect {
             } catch (SQLException | TimeoutException | RuntimeException e) {
                 attempt++;
 
-                // Mail failures are not DB errors — never retry them.
-                if (e instanceof MailException || isCausedBy(e, MailException.class)) {
+                // Email delivery failures are not DB errors — never retry them.
+                if (e instanceof EmailDeliveryException) {
                     throw e;
                 }
 
@@ -127,15 +127,6 @@ public class DatabaseRetryAspect {
                    message.contains("jdbc") || message.contains("pool") || message.contains("hikari")));
     }
 
-    /** Walk the cause chain looking for a specific exception type. */
-    private boolean isCausedBy(Throwable e, Class<?> type) {
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            if (type.isInstance(cause)) return true;
-            cause = cause.getCause();
-        }
-        return false;
-    }
 
     /**
      * Custom exception for service unavailable

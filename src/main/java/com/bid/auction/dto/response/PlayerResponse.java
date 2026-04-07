@@ -22,5 +22,16 @@ public class PlayerResponse {
     private Long tournamentId;
     private String photoUrl;
     private String paymentProofUrl;
-}
+    private String mobileNumber;
 
+    // ── Optional profile fields ──────────────────────────────────────────────
+    private String handedness;
+    private String tshirtSize;
+    private String trouserSize;
+    private String jerseyNumber;
+    private String sleeveType;
+    private String playerLocation;
+    private Boolean lastSeasonPlayed;
+    private String lastSeasonTeam;
+    private String bowlingStyle;
+}

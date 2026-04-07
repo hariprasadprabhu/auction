@@ -39,6 +39,11 @@ public class User {
     @Builder.Default
     private Role role = Role.ADMIN;
 
+    /** Whether the user's email address has been verified via OTP. Read-only from API. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean emailVerified = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

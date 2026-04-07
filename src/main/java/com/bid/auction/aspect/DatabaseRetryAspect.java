@@ -1,5 +1,6 @@
 package com.bid.auction.aspect;
 
+import com.bid.auction.exception.EmailDeliveryException;
 import com.bid.auction.util.DatabaseCircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -69,6 +70,12 @@ public class DatabaseRetryAspect {
                 
             } catch (SQLException | TimeoutException | RuntimeException e) {
                 attempt++;
+
+                // Email delivery failures are not DB errors — never retry them.
+                if (e instanceof EmailDeliveryException) {
+                    throw e;
+                }
+
                 circuitBreaker.recordFailure();
                 
                 // Check if it's a connection pool exhaustion error
@@ -100,23 +107,26 @@ public class DatabaseRetryAspect {
     }
 
     /**
-     * Determine if error is related to connection pool exhaustion
+     * Determine if error is related to DB connection pool exhaustion.
+     * Deliberately narrow — must mention Hikari/JDBC/pool keywords to avoid
+     * matching SMTP "connection" errors.
      */
     private boolean isConnectionPoolError(Throwable e) {
         String message = e.getMessage();
         if (message == null) {
             return false;
         }
-
         message = message.toLowerCase();
-        
-        return message.contains("timeout")
-            || message.contains("connection")
-            || message.contains("pool")
-            || message.contains("hikari")
-            || message.contains("busy")
-            || message.contains("exhausted");
+        return message.contains("hikari")
+            || message.contains("connection pool")
+            || message.contains("pool exhausted")
+            || message.contains("unable to acquire jdbc")
+            || message.contains("jdbc connection")
+            || message.contains("datasource")
+            || (message.contains("timeout") && (
+                   message.contains("jdbc") || message.contains("pool") || message.contains("hikari")));
     }
+
 
     /**
      * Custom exception for service unavailable

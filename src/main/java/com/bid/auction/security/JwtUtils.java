@@ -1,6 +1,7 @@
 package com.bid.auction.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,18 @@ public class JwtUtils {
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * Extracts the username (subject) from a token even if it is expired.
+     * Used by the /auth/refresh endpoint.
+     */
+    public String extractUsernameIgnoreExpiry(String token) {
+        try {
+            return extractClaim(token, Claims::getSubject);
+        } catch (ExpiredJwtException e) {
+            return e.getClaims().getSubject();
+        }
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

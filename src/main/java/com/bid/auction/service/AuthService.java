@@ -65,6 +65,50 @@ public class AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
+                .build();
+    }
+
+    /**
+     * Accepts the current (possibly expired) JWT from the Authorization header,
+     * extracts the user, and issues a brand-new access token.
+     */
+    public AuthResponse refreshAccessToken(String expiredToken) {
+        String email = jwtUtils.extractUsernameIgnoreExpiry(expiredToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        String newToken = jwtUtils.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(newToken)
+                .type("Bearer")
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
+                .build();
+    }
+
+    /**
+     * Generates a fresh JWT and returns an {@link AuthResponse} for the given user.
+     * Used by {@code EmailVerificationService} after OTP verification so the caller
+     * gets a usable token without having to log in again.
+     */
+    public AuthResponse generateAuthResponse(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtils.generateToken(userDetails);
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 
@@ -73,13 +117,17 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
     }
 
+    public UserResponse getUserResponseByEmail(String email) {
+        return toUserResponse(getUserByEmail(email));
+    }
+
     private UserResponse toUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 }
-

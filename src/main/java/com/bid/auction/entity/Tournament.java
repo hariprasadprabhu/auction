@@ -48,6 +48,18 @@ public class Tournament {
     @Column(name = "payment_proof_required")
     private Boolean paymentProofRequired;
 
+    /** Payment method players should use to pay the registration fee (e.g. "GPay", "PhonePe"). */
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
+    /** UPI ID / account number players should pay the registration fee to. */
+    @Column(name = "payment_number")
+    private String paymentNumber;
+
+    /** Registration fee amount (in whole currency units) that players are required to pay. */
+    @Column(name = "amount_to_pay")
+    private Long amountToPay;
+
     // ── Player registration field config ──────────────────────────────────────
     // Each flag controls whether that field is MANDATORY during player registration.
     // All default to false (optional). Tournament owner can update via

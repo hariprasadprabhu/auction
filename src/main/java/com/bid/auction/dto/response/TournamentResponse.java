@@ -30,6 +30,15 @@ public class TournamentResponse {
     private Long initialIncrement;
     private String logoUrl;
     private Boolean paymentProofRequired;
+
+    /** Payment method players should use to pay the registration fee (e.g. "GPay", "PhonePe"). */
+    private String paymentMethod;
+
+    /** UPI ID / account number players should pay the registration fee to. */
+    private String paymentNumber;
+
+    /** Registration fee amount (in whole currency units) that players are required to pay. */
+    private Long amountToPay;
     /**
      * Indicates whether the auction date can still be edited.
      * {@code true} = one more update is allowed; {@code false} = date is permanently locked.

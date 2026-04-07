@@ -1,5 +1,6 @@
 package com.bid.auction.entity;
 
+import com.bid.auction.enums.PaymentMethod;
 import com.bid.auction.enums.TournamentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,6 +48,28 @@ public class Tournament {
 
     @Column(name = "payment_proof_required")
     private Boolean paymentProofRequired;
+
+    /**
+     * The GPay / PhonePe number where players should send their payment.
+     * Only relevant when paymentProofRequired = true.
+     */
+    @Column(name = "payment_collection_number")
+    private String paymentCollectionNumber;
+
+    /**
+     * Payment method(s) accepted by the tournament organiser.
+     * GPAY | PHONEPAY | BOTH  – Only relevant when paymentProofRequired = true.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "accepted_payment_methods")
+    private PaymentMethod acceptedPaymentMethods;
+
+    /**
+     * The entry fee / payment amount players must pay for this tournament.
+     * Only relevant when paymentProofRequired = true.
+     */
+    @Column(name = "payment_amount")
+    private Long paymentAmount;
 
     // ── Player registration field config ──────────────────────────────────────
     // Each flag controls whether that field is MANDATORY during player registration.

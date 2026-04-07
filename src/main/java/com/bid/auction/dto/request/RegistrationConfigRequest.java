@@ -1,5 +1,6 @@
 package com.bid.auction.dto.request;
 
+import com.bid.auction.enums.PaymentMethod;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
@@ -69,5 +70,26 @@ public class RegistrationConfigRequest {
     /** Make Bowling Style mandatory */
     @JsonAlias("bowlingStyle")
     private Boolean requireBowlingStyle;
+
+    /**
+     * GPay / PhonePe number where players should send their entry fee.
+     * Saved to the tournament when paymentProofRequired = true.
+     */
+    @JsonAlias("paymentCollectionNumber")
+    private String paymentCollectionNumber;
+
+    /**
+     * Payment method(s) accepted: GPAY, PHONEPAY, or BOTH.
+     * Saved to the tournament when paymentProofRequired = true.
+     */
+    @JsonAlias("acceptedPaymentMethods")
+    private PaymentMethod acceptedPaymentMethods;
+
+    /**
+     * Entry fee amount players must pay to participate.
+     * Saved to the tournament when paymentProofRequired = true.
+     */
+    @JsonAlias("paymentAmount")
+    private Long paymentAmount;
 }
 

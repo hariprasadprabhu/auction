@@ -71,6 +71,9 @@ public class TournamentService {
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
                 .logo(req.getLogo())
                 .paymentProofRequired(req.getPaymentProofRequired())
+                .paymentCollectionNumber(req.getPaymentCollectionNumber())
+                .acceptedPaymentMethods(req.getAcceptedPaymentMethods())
+                .paymentAmount(req.getPaymentAmount())
                 .playerRegistrationOpen(req.getPlayerRegistrationOpen() != null ? req.getPlayerRegistrationOpen() : true)
                 .createdBy(user)
                 .build();
@@ -122,6 +125,15 @@ public class TournamentService {
         }
         if (req.getPaymentProofRequired() != null) {
             t.setPaymentProofRequired(req.getPaymentProofRequired());
+        }
+        if (req.getPaymentCollectionNumber() != null) {
+            t.setPaymentCollectionNumber(req.getPaymentCollectionNumber());
+        }
+        if (req.getAcceptedPaymentMethods() != null) {
+            t.setAcceptedPaymentMethods(req.getAcceptedPaymentMethods());
+        }
+        if (req.getPaymentAmount() != null) {
+            t.setPaymentAmount(req.getPaymentAmount());
         }
         if (req.getPlayerRegistrationOpen() != null) {
             t.setPlayerRegistrationOpen(req.getPlayerRegistrationOpen());
@@ -188,6 +200,15 @@ public class TournamentService {
         if (req.getRequirePhoto()            != null) t.setRegRequirePhoto(req.getRequirePhoto());
         if (req.getRequirePaymentProof()     != null) {
             t.setPaymentProofRequired(req.getRequirePaymentProof());
+        }
+        if (req.getPaymentCollectionNumber() != null) {
+            t.setPaymentCollectionNumber(req.getPaymentCollectionNumber());
+        }
+        if (req.getAcceptedPaymentMethods()  != null) {
+            t.setAcceptedPaymentMethods(req.getAcceptedPaymentMethods());
+        }
+        if (req.getPaymentAmount()           != null) {
+            t.setPaymentAmount(req.getPaymentAmount());
         }
         if (req.getRequireMobileNumber()     != null) t.setRegRequireMobileNumber(req.getRequireMobileNumber());
         if (req.getRequireHandedness()       != null) t.setRegRequireHandedness(req.getRequireHandedness());
@@ -256,6 +277,9 @@ public class TournamentService {
                 .initialIncrement(t.getInitialIncrement())
                 .logoUrl(t.getLogo())
                 .paymentProofRequired(t.getPaymentProofRequired())
+                .paymentCollectionNumber(t.getPaymentCollectionNumber())
+                .acceptedPaymentMethods(t.getAcceptedPaymentMethods())
+                .paymentAmount(t.getPaymentAmount())
                 .canEditAuctionDate(t.getCanEditAuctionDate())
                 .playerRegistrationOpen(t.getPlayerRegistrationOpen())
                 .registrationConfig(toConfigResponse(t))
@@ -278,6 +302,10 @@ public class TournamentService {
                 .requireLastSeasonPlayed(Boolean.TRUE.equals(t.getRegRequireLastSeasonPlayed()))
                 .requireLastSeasonTeam(Boolean.TRUE.equals(t.getRegRequireLastSeasonTeam()))
                 .requireBowlingStyle(Boolean.TRUE.equals(t.getRegRequireBowlingStyle()))
+                // Payment collection info — only meaningful when requirePaymentProof = true
+                .paymentCollectionNumber(t.getPaymentCollectionNumber())
+                .acceptedPaymentMethods(t.getAcceptedPaymentMethods())
+                .paymentAmount(t.getPaymentAmount())
                 .build();
     }
 }

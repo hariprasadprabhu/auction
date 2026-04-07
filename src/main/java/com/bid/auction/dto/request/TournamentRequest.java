@@ -1,5 +1,6 @@
 package com.bid.auction.dto.request;
 
+import com.bid.auction.enums.PaymentMethod;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -48,6 +49,24 @@ public class TournamentRequest {
     private String logo;
 
     private Boolean paymentProofRequired;
+
+    /**
+     * GPay / PhonePe number where players should send their entry fee.
+     * Only relevant when paymentProofRequired = true.
+     */
+    private String paymentCollectionNumber;
+
+    /**
+     * Payment method(s) accepted: GPAY, PHONEPAY, or BOTH.
+     * Only relevant when paymentProofRequired = true.
+     */
+    private PaymentMethod acceptedPaymentMethods;
+
+    /**
+     * Entry fee amount players must pay to participate.
+     * Only relevant when paymentProofRequired = true.
+     */
+    private Long paymentAmount;
 
     /**
      * Whether player self-registration is open for this tournament.

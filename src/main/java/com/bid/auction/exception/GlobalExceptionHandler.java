@@ -1,6 +1,7 @@
 package com.bid.auction.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -82,6 +84,8 @@ public class GlobalExceptionHandler {
     // ── 503 – Email delivery failure ──────────────────────────────────────────
     @ExceptionHandler(EmailDeliveryException.class)
     public ResponseEntity<Map<String, Object>> handleEmailDeliveryFailure(EmailDeliveryException ex) {
+        // Log the real cause so it appears in Railway / Render logs
+        log.error("Email delivery failed: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(errorBody("EMAIL_SERVICE_UNAVAILABLE",
                         "We could not send the email at this time. Please try again in a moment."));

@@ -97,4 +97,3 @@ public class Player {
         if (status == null) status = PlayerStatus.PENDING;
     }
 }
-

@@ -52,4 +52,3 @@ public class PlayerRegisterRequest {
     /** Bowling style e.g. "Right-arm fast", "Left-arm spin", etc. */
     private String bowlingStyle;
 }
-

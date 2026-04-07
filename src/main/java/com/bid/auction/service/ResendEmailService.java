@@ -1,12 +1,13 @@
 package com.bid.auction.service;
 
 import com.bid.auction.exception.EmailDeliveryException;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,15 @@ public class ResendEmailService {
                 .build();
     }
 
+    @PostConstruct
+    void logConfig() {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.error("⚠️  RESEND_API_KEY is NOT set — all email sending will fail with 503!");
+        } else {
+            log.info("✅ Resend email service configured. Sending from: {}", fromAddress);
+        }
+    }
+
     /**
      * Sends a plain-text email.
      *
@@ -51,16 +61,17 @@ public class ResendEmailService {
      * @throws EmailDeliveryException if the Resend API returns an error
      */
     public void sendText(String to, String subject, String text) {
+
+        // Surface misconfiguration immediately rather than silently dropping emails
         if (apiKey == null || apiKey.isBlank()) {
-            // Local dev: no key configured — just log so developers can see the OTP.
-            log.warn("RESEND_API_KEY is not set — email will NOT be delivered to {}", to);
-            log.info("[DEV EMAIL]\nTo:      {}\nSubject: {}\n\n{}", to, subject, text);
-            return;
+            throw new EmailDeliveryException(
+                    "Email service is not configured on this server (RESEND_API_KEY missing). " +
+                    "Please contact support.", null);
         }
 
         Map<String, Object> payload = Map.of(
-                "from", fromAddress,
-                "to",   List.of(to),
+                "from",    fromAddress,
+                "to",      List.of(to),
                 "subject", subject,
                 "text",    text
         );
@@ -74,12 +85,18 @@ public class ResendEmailService {
                     .retrieve()
                     .toBodilessEntity();
 
-            log.info("Email dispatched via Resend to {}", to);
+            log.info("✉️  Email dispatched via Resend → {}", to);
 
-        } catch (RestClientException e) {
+        } catch (RestClientResponseException e) {
+            // Read the response body so we know exactly what Resend rejected
+            String resendError = e.getResponseBodyAsString();
+            log.error("Resend API error (HTTP {}): {}", e.getStatusCode(), resendError);
+            throw new EmailDeliveryException(
+                    "Email delivery failed (Resend HTTP " + e.getStatusCode() + "): " + resendError, e);
+
+        } catch (Exception e) {
             log.error("Resend API call failed for {}: {}", to, e.getMessage());
-            throw new EmailDeliveryException("Could not send email at this time", e);
+            throw new EmailDeliveryException("Email delivery failed: " + e.getMessage(), e);
         }
     }
 }
-

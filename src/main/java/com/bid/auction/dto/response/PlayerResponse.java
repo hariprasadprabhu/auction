@@ -35,4 +35,3 @@ public class PlayerResponse {
     private String lastSeasonTeam;
     private String bowlingStyle;
 }
-

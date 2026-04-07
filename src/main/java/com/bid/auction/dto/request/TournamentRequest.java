@@ -49,6 +49,15 @@ public class TournamentRequest {
 
     private Boolean paymentProofRequired;
 
+    /** Payment method players should use to pay the registration fee (e.g. "GPay", "PhonePe"). */
+    private String paymentMethod;
+
+    /** UPI ID / account number players should pay the registration fee to. */
+    private String paymentNumber;
+
+    /** Registration fee amount (in whole currency units) that players are required to pay. */
+    private Long amountToPay;
+
     /**
      * Whether player self-registration is open for this tournament.
      * Defaults to {@code true} on creation if not specified.

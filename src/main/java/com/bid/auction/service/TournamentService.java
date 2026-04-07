@@ -71,6 +71,9 @@ public class TournamentService {
                 .status(parseStatus(req.getStatus(), TournamentStatus.UPCOMING))
                 .logo(req.getLogo())
                 .paymentProofRequired(req.getPaymentProofRequired())
+                .paymentMethod(req.getPaymentMethod())
+                .paymentNumber(req.getPaymentNumber())
+                .amountToPay(req.getAmountToPay())
                 .playerRegistrationOpen(req.getPlayerRegistrationOpen() != null ? req.getPlayerRegistrationOpen() : true)
                 .createdBy(user)
                 .build();
@@ -122,6 +125,15 @@ public class TournamentService {
         }
         if (req.getPaymentProofRequired() != null) {
             t.setPaymentProofRequired(req.getPaymentProofRequired());
+        }
+        if (req.getPaymentMethod() != null) {
+            t.setPaymentMethod(req.getPaymentMethod());
+        }
+        if (req.getPaymentNumber() != null) {
+            t.setPaymentNumber(req.getPaymentNumber());
+        }
+        if (req.getAmountToPay() != null) {
+            t.setAmountToPay(req.getAmountToPay());
         }
         if (req.getPlayerRegistrationOpen() != null) {
             t.setPlayerRegistrationOpen(req.getPlayerRegistrationOpen());
@@ -256,6 +268,9 @@ public class TournamentService {
                 .initialIncrement(t.getInitialIncrement())
                 .logoUrl(t.getLogo())
                 .paymentProofRequired(t.getPaymentProofRequired())
+                .paymentMethod(t.getPaymentMethod())
+                .paymentNumber(t.getPaymentNumber())
+                .amountToPay(t.getAmountToPay())
                 .canEditAuctionDate(t.getCanEditAuctionDate())
                 .playerRegistrationOpen(t.getPlayerRegistrationOpen())
                 .registrationConfig(toConfigResponse(t))

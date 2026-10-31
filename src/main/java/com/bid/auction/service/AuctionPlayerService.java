@@ -58,6 +58,7 @@ public class AuctionPlayerService {
                 .lastName(req.getLastName())
                 .age(req.getAge())
                 .city(req.getCity())
+                .playerLocation(req.getPlayerLocation())
                 .battingStyle(req.getBattingStyle())
                 .bowlingStyle(req.getBowlingStyle())
                 .role(req.getRole())
@@ -81,6 +82,7 @@ public class AuctionPlayerService {
         ap.setLastName(req.getLastName());
         ap.setAge(req.getAge());
         ap.setCity(req.getCity());
+        ap.setPlayerLocation(req.getPlayerLocation());
         ap.setBattingStyle(req.getBattingStyle());
         ap.setBowlingStyle(req.getBowlingStyle());
         ap.setRole(req.getRole());
@@ -144,6 +146,7 @@ public class AuctionPlayerService {
             ap.setFirstName(player.getFirstName());
             ap.setLastName(player.getLastName());
             ap.setRole(player.getRole());
+            ap.setPlayerLocation(player.getPlayerLocation());
             if (player.getPhoto() != null) {
                 ap.setPhoto(player.getPhoto());
             }
@@ -171,6 +174,7 @@ public class AuctionPlayerService {
                 .playerNumber(player.getPlayerNumber())
                 .firstName(player.getFirstName())
                 .lastName(player.getLastName())
+                .playerLocation(player.getPlayerLocation())
                 .role(player.getRole())
                 .basePrice(tournament.getBasePrice())   // default from tournament; admin can update later
                 .photo(player.getPhoto())
@@ -213,6 +217,7 @@ public class AuctionPlayerService {
                 .playerNumber(player.getPlayerNumber())
                 .firstName(player.getFirstName())
                 .lastName(player.getLastName())
+                .playerLocation(player.getPlayerLocation())
                 .role(player.getRole())
                 .age(req.getAge())
                 .city(req.getCity())
@@ -427,6 +432,7 @@ public class AuctionPlayerService {
                     .playerNumber(player.getPlayerNumber())
                     .firstName(player.getFirstName())
                     .lastName(player.getLastName())
+                    .playerLocation(player.getPlayerLocation())
                     .role(player.getRole())
                     .basePrice(tournament.getBasePrice())  // Uses current tournament base price
                     .photo(player.getPhoto())
@@ -495,6 +501,7 @@ public class AuctionPlayerService {
                 .lastName(ap.getLastName())
                 .age(ap.getAge())
                 .city(ap.getCity())
+                .playerLocation(ap.getPlayerLocation())
                 .battingStyle(ap.getBattingStyle())
                 .bowlingStyle(ap.getBowlingStyle())
                 .role(ap.getRole())
@@ -509,4 +516,3 @@ public class AuctionPlayerService {
                 .build();
     }
 }
-

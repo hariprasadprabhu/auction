@@ -17,6 +17,7 @@ public class AuctionPlayerResponse {
     private String lastName;
     private Integer age;
     private String city;
+    private String playerLocation;
     private String battingStyle;
     private String bowlingStyle;
     private String role;
@@ -29,4 +30,3 @@ public class AuctionPlayerResponse {
     private Integer sortOrder;
     private String photoUrl;
 }
-

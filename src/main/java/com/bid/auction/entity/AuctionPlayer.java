@@ -28,6 +28,8 @@ public class AuctionPlayer {
     private String lastName;
     private Integer age;
     private String city;
+    @Column(name = "player_location")
+    private String playerLocation;
     private String battingStyle;
     private String bowlingStyle;
 
@@ -73,4 +75,3 @@ public class AuctionPlayer {
         if (auctionStatus == null) auctionStatus = AuctionStatus.UPCOMING;
     }
 }
-

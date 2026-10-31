@@ -23,6 +23,8 @@ public class AuctionPlayerRequest {
     @NotBlank(message = "City is required")
     private String city;
 
+    private String playerLocation;
+
     @NotBlank(message = "Batting style is required")
     private String battingStyle;
 
@@ -38,4 +40,3 @@ public class AuctionPlayerRequest {
 
     private String photo;
 }
-

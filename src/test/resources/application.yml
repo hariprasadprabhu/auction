@@ -20,6 +20,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
 
+  flyway:
+    enabled: false
+
   servlet:
     multipart:
       enabled: true
@@ -32,4 +35,3 @@ app:
     expiration: 86400000
   cors:
     allowed-origins: "http://localhost:4200"
-

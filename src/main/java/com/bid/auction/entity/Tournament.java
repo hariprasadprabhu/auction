@@ -152,9 +152,8 @@ public class Tournament {
     @Builder.Default
     private Boolean canEditAuctionDate = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_id", nullable = false)
-    private User createdBy;
+    @Column(name = "created_by_id", nullable = false)
+    private Long createdById;
 
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -197,4 +196,3 @@ public class Tournament {
         if (playerRegistrationOpen == null) playerRegistrationOpen = true;
     }
 }
-

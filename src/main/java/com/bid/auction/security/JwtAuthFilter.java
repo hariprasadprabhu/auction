@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -39,7 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             email = jwtUtils.extractUsername(token);
-        } catch (Exception ignored) {
+        } catch (JwtException | IllegalArgumentException ignored) {
             // invalid token — continue without authentication
         }
 
@@ -53,12 +55,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-            } catch (Exception ignored) {
-                // User not found or token invalid — continue without authentication
+            } catch (UsernameNotFoundException ignored) {
+                // A valid token for an account that no longer exists is unauthenticated.
             }
         }
 
         filterChain.doFilter(request, response);
     }
 }
-

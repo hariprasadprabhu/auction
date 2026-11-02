@@ -36,7 +36,7 @@ public class TournamentService {
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<TournamentResponse> getAll(User user) {
-        return tournamentRepository.findByCreatedBy(user)
+        return tournamentRepository.findByCreatedById(user.getId())
                 .stream().map(this::toResponse).toList();
     }
 
@@ -75,7 +75,7 @@ public class TournamentService {
                 .acceptedPaymentMethods(req.getAcceptedPaymentMethods())
                 .paymentAmount(req.getPaymentAmount())
                 .playerRegistrationOpen(req.getPlayerRegistrationOpen() != null ? req.getPlayerRegistrationOpen() : true)
-                .createdBy(user)
+                .createdById(user.getId())
                 .build();
 
         return toResponse(tournamentRepository.save(t));
@@ -240,7 +240,7 @@ public class TournamentService {
     public Tournament findAndVerifyOwner(Long id, User user) {
         Tournament t = tournamentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id));
-        if (!t.getCreatedBy().getId().equals(user.getId())) {
+        if (!t.getCreatedById().equals(user.getId())) {
             throw new AccessDeniedException("You do not own this tournament");
         }
         return t;
@@ -309,4 +309,3 @@ public class TournamentService {
                 .build();
     }
 }
-

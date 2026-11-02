@@ -1,7 +1,8 @@
 package com.bid.auction.security;
 
 import com.bid.auction.entity.User;
-import com.bid.auction.repository.UserRepository;
+import com.bid.auction.exception.ResourceNotFoundException;
+import com.bid.auction.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,18 +16,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final AuthService authService;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        User user;
+        try {
+            user = authService.getUserByEmail(email);
+        } catch (ResourceNotFoundException e) {
+            throw new UsernameNotFoundException("User not found with email: " + email, e);
+        }
 
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
-                user.getPassword(),
+                "",
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
         );
     }
 }
-

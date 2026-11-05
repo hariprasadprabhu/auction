@@ -1293,6 +1293,26 @@ ERROR RESPONSES:
 - 404 Not Found: Tournament not found
 - 403 Forbidden: Not the tournament owner
 
+LIVE AUCTION DATA: Auction Players and Team Purses
+──────────────────────────────────────────────────
+WEBSOCKET URL: ws://localhost:8080/api/ws
+PROTOCOL: STOMP over WebSocket
+AUTH: Public
+
+For tournament 32, subscribe to these topics to receive live updates:
+- /topic/tournaments/32/auction-players
+- /topic/tournaments/32/team-purses
+
+Then subscribe to the matching application destinations to receive an initial
+snapshot:
+- /app/tournaments/32/auction-players
+- /app/tournaments/32/team-purses
+
+The snapshots match the existing GET responses. After a successful SELL
+transaction commits, both tournament topics receive refreshed data. No updates
+are sent for failed sales or changes to other tournaments. The owner-view
+endpoint remains a regular HTTP GET and is not part of the websocket updates.
+The existing GET endpoints remain available for clients that still need them.
 
 ================================================================================
                       GENERAL ERROR RESPONSES
@@ -1401,4 +1421,3 @@ Common HTTP Status Codes and Error Formats:
 Document Generated: March 15, 2026
 Last Updated: March 15, 2026
 Version: 1.0
-

@@ -46,6 +46,7 @@ public class SecurityConfig {
                         // Health check (for load balancers and health monitoring)
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // Allow CORS preflight OPTIONS requests
+                        .requestMatchers("/ws", "/ws/**").permitAll()
                         // Swagger UI / OpenAPI docs
                         .requestMatchers(
                                 "/swagger-ui.html", "/swagger-ui/**",

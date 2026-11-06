@@ -16,6 +16,7 @@ import com.bid.auction.repository.AuctionPlayerRepository;
 import com.bid.auction.repository.PlayerRepository;
 import com.bid.auction.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class AuctionPlayerService {
     private final PlayerRepository playerRepository;
     private final TournamentService tournamentService;
     private final TeamPurseService teamPurseService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ── List ──────────────────────────────────────────────────────────────────
     public List<AuctionPlayerResponse> getAllByTournament(Long tournamentId, User user) {
@@ -47,6 +49,7 @@ public class AuctionPlayerService {
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
+    @Transactional
     public AuctionPlayerResponse create(Long tournamentId, AuctionPlayerRequest req, User user) {
         Tournament tournament = tournamentService.findAndVerifyOwner(tournamentId, user);
 
@@ -68,7 +71,9 @@ public class AuctionPlayerService {
                 .sortOrder(nextOrder)
                 .build();
 
-        return toResponse(auctionPlayerRepository.save(ap));
+        AuctionPlayer saved = auctionPlayerRepository.save(ap);
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(tournamentId));
+        return toResponse(saved);
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -180,6 +185,7 @@ public class AuctionPlayerService {
                 .build();
 
         auctionPlayerRepository.save(ap);
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(tournament.getId()));
     }
 
     // ── Promote approved registered player into auction pool ──────────────────
@@ -225,7 +231,9 @@ public class AuctionPlayerService {
                 .sortOrder(nextOrder)
                 .build();
 
-        return toResponse(auctionPlayerRepository.save(ap));
+        AuctionPlayer saved = auctionPlayerRepository.save(ap);
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(tournament.getId()));
+        return toResponse(saved);
     }
 
     // ── Sell ─────────────────────────────────────────────────────────────────
@@ -283,6 +291,7 @@ public class AuctionPlayerService {
             playerRepository.updateStatusById(ap.getPlayer().getId(), PlayerStatus.SOLD);
         }
 
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(tournament.getId()));
         return toResponse(ap);
     }
 
@@ -308,6 +317,7 @@ public class AuctionPlayerService {
             playerRepository.updateStatusById(ap.getPlayer().getId(), PlayerStatus.UNSOLD);
         }
 
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(ap.getTournament().getId()));
         return Map.of("id", ap.getId(), "auctionStatus", ap.getAuctionStatus().name());
     }
 
@@ -319,6 +329,9 @@ public class AuctionPlayerService {
                 .findByTournamentIdAndAuctionStatus(tournamentId, AuctionStatus.UNSOLD);
         unsold.forEach(ap -> ap.setAuctionStatus(AuctionStatus.UPCOMING));
         auctionPlayerRepository.saveAll(unsold);
+        if (!unsold.isEmpty()) {
+            eventPublisher.publishEvent(new AuctionDataChangedEvent(tournamentId));
+        }
         return Map.of("requeuedCount", unsold.size());
     }
 
@@ -360,7 +373,11 @@ public class AuctionPlayerService {
             auctionPlayerRepository.save(ap);
             processedCount++;
         }
-        
+
+        if (processedCount > 0) {
+            eventPublisher.publishEvent(new AuctionDataChangedEvent(tournamentId));
+        }
+
         return Map.of(
             "processedCount", processedCount,
             "skippedCount", skippedCount,
@@ -449,6 +466,7 @@ public class AuctionPlayerService {
         Integer currentPlayersPerTeam = tournament.getPlayersPerTeam() != null ? tournament.getPlayersPerTeam() : 11;
         Long currentBasePrice = tournament.getBasePrice() != null ? tournament.getBasePrice() : 5000L;
 
+        eventPublisher.publishEvent(new AuctionDataChangedEvent(tournamentId));
         return Map.of(
             "deletedAuctionPlayers", deletedCount,
             "readdedApprovedPlayers", approvedPlayers.size(),
@@ -509,4 +527,3 @@ public class AuctionPlayerService {
                 .build();
     }
 }
-
